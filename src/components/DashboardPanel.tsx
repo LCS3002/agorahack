@@ -10,6 +10,7 @@ interface DashboardPanelProps {
   moduleData: ModuleData;
   activeModules: ModuleType[];
   isLoading: boolean;
+  onExpand?: (module: ModuleType) => void;
 }
 
 // ── Shimmer skeleton ──────────────────────────────────────────────────────────
@@ -63,6 +64,21 @@ function Empty({ hint }: { hint: string }) {
   );
 }
 
+// ── Expand icon ───────────────────────────────────────────────────────────────
+function ExpandIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 11 11" fill="none" aria-hidden>
+      <path
+        d="M6.5 1H10V4.5M4.5 10H1V6.5M10 1L6 5M5 6L1 10"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // ── Bento cell wrapper ────────────────────────────────────────────────────────
 interface BentoCellProps {
   title: string;
@@ -70,10 +86,11 @@ interface BentoCellProps {
   isActive: boolean;
   isLoading: boolean;
   gridArea: string;
+  onExpand?: () => void;
   children: React.ReactNode;
 }
 
-function BentoCell({ title, sub, isActive, isLoading, gridArea, children }: BentoCellProps) {
+function BentoCell({ title, sub, isActive, isLoading, gridArea, onExpand, children }: BentoCellProps) {
   return (
     <div style={{
       gridArea,
@@ -119,19 +136,40 @@ function BentoCell({ title, sub, isActive, isLoading, gridArea, children }: Bent
             {sub}
           </div>
         </div>
-        {/* Status dot */}
-        <div style={{
-          width: '5px',
-          height: '5px',
-          borderRadius: '50%',
-          flexShrink: 0,
-          background: isActive
-            ? (isLoading ? '#D4C4A8' : 'rgba(26,26,24,0.45)')
-            : 'rgba(26,26,24,0.1)',
-          transition: 'background 0.35s ease',
-          animation: isLoading && isActive ? 'dp 1s ease-in-out infinite' : 'none',
-        }} />
-        <style>{`@keyframes dp{0%,100%{opacity:.3}50%{opacity:1}}`}</style>
+        {/* Right side: expand button + status dot */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          {onExpand && (
+            <button
+              onClick={onExpand}
+              title="Expand"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '2px',
+                color: 'rgba(26,26,24,0.28)',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'rgba(26,26,24,0.7)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(26,26,24,0.28)')}
+            >
+              <ExpandIcon />
+            </button>
+          )}
+          <div style={{
+            width: '5px',
+            height: '5px',
+            borderRadius: '50%',
+            background: isActive
+              ? (isLoading ? '#D4C4A8' : 'rgba(26,26,24,0.45)')
+              : 'rgba(26,26,24,0.1)',
+            transition: 'background 0.35s ease',
+            animation: isLoading && isActive ? 'dp 1s ease-in-out infinite' : 'none',
+          }} />
+          <style>{`@keyframes dp{0%,100%{opacity:.3}50%{opacity:1}}`}</style>
+        </div>
       </div>
 
       {/* Scrollable body */}
@@ -179,21 +217,12 @@ function Slot({ id, isLoading, isActive, skeletonRows = 5, emptyHint, children }
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function DashboardPanel({ moduleData, activeModules, isLoading }: DashboardPanelProps) {
+export function DashboardPanel({ moduleData, activeModules, isLoading, onExpand }: DashboardPanelProps) {
   const votingActive   = activeModules.includes('VOTING');
   const lobbyingActive = activeModules.includes('LOBBYING');
   const newsActive     = activeModules.includes('NEWS');
 
   return (
-    /*
-     * Bento grid:
-     *   "voting  lobbying"   ← row 1 (55% height)
-     *   "voting  news"       ← row 2 (45% height)
-     *
-     * Voting occupies the full left column (both rows).
-     * Lobbying sits top-right, News bottom-right.
-     * A 1px gap styled as a grid line separates the cells.
-     */
     <div style={{
       display: 'grid',
       gridTemplateColumns: '1.15fr 0.85fr',
@@ -215,6 +244,7 @@ export function DashboardPanel({ moduleData, activeModules, isLoading }: Dashboa
         isActive={votingActive}
         isLoading={isLoading && votingActive}
         gridArea="voting"
+        onExpand={onExpand ? () => onExpand('VOTING') : undefined}
       >
         <Slot
           id="voting"
@@ -234,6 +264,7 @@ export function DashboardPanel({ moduleData, activeModules, isLoading }: Dashboa
         isActive={lobbyingActive}
         isLoading={isLoading && lobbyingActive}
         gridArea="lobbying"
+        onExpand={onExpand ? () => onExpand('LOBBYING') : undefined}
       >
         <Slot
           id="lobbying"
@@ -253,6 +284,7 @@ export function DashboardPanel({ moduleData, activeModules, isLoading }: Dashboa
         isActive={newsActive}
         isLoading={isLoading && newsActive}
         gridArea="news"
+        onExpand={onExpand ? () => onExpand('NEWS') : undefined}
       >
         <Slot
           id="news"
