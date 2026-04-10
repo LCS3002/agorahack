@@ -20,6 +20,65 @@ const DEMO_QUERIES = [
   'Show me everything on farm subsidies',
 ];
 
+// ── Citation renderer ─────────────────────────────────────────────────────────
+function SummaryWithCitations({ text, isStreaming }: { text: string; isStreaming: boolean }) {
+  const sourcesIdx = text.indexOf('\nSOURCES\n');
+  const body    = sourcesIdx !== -1 ? text.slice(0, sourcesIdx) : text;
+  const sources = sourcesIdx !== -1 ? text.slice(sourcesIdx + 9) : '';
+
+  // Render body: replace [n] with superscript spans
+  function renderBody(t: string) {
+    const parts = t.split(/(\[\d+\])/g);
+    return parts.map((part, i) => {
+      if (/^\[\d+\]$/.test(part)) {
+        return (
+          <sup key={i} style={{ fontSize: '7.5px', color: '#C9A89A', marginLeft: '1px', fontWeight: 500, verticalAlign: 'super', lineHeight: 1 }}>
+            {part}
+          </sup>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  }
+
+  // Parse sources section into numbered lines
+  const sourceLines = sources
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => /^\[\d+\]/.test(l));
+
+  return (
+    <>
+      <div style={{ fontSize: '13px', fontWeight: 300, lineHeight: 1.85, color: '#1A1A18', letterSpacing: '0.01em' }}>
+        {renderBody(body)}
+        {isStreaming && (
+          <span style={{ display: 'inline-block', width: '1px', height: '14px', background: '#1A1A18', marginLeft: '2px', verticalAlign: 'middle', animation: 'blink 1s step-end infinite' }} />
+        )}
+        <style>{`@keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }`}</style>
+      </div>
+
+      {sourceLines.length > 0 && (
+        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(26,26,24,0.08)' }}>
+          <div style={{ fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)', marginBottom: '8px' }}>
+            Sources
+          </div>
+          {sourceLines.map((line, i) => {
+            const match = line.match(/^\[(\d+)\]\s*(.*)/);
+            if (!match) return null;
+            const [, num, cite] = match;
+            return (
+              <div key={i} style={{ display: 'flex', gap: '7px', marginBottom: '5px', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '7.5px', color: '#C9A89A', fontWeight: 500, flexShrink: 0, lineHeight: 1.6 }}>[{num}]</span>
+                <span style={{ fontSize: '9.5px', fontWeight: 300, color: 'rgba(26,26,24,0.5)', lineHeight: 1.6 }}>{cite}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
 const MODULE_COLORS: Record<ModuleType, string> = {
   VOTING:   'rgba(26,26,24,0.6)',
   LOBBYING: '#C9A89A',
@@ -169,7 +228,7 @@ export function ChatPanel({
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                 }}>
-                  {item.summary}
+                  {item.summary.split('\nSOURCES\n')[0]}
                 </p>
               </div>
             ))}
@@ -215,29 +274,8 @@ export function ChatPanel({
             )}
 
             {summary && (
-              <div
-                ref={summaryRef}
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 300,
-                  lineHeight: 1.85,
-                  color: '#1A1A18',
-                  letterSpacing: '0.01em',
-                }}
-              >
-                {summary}
-                {isLoading && (
-                  <span style={{
-                    display: 'inline-block',
-                    width: '1px',
-                    height: '14px',
-                    background: '#1A1A18',
-                    marginLeft: '2px',
-                    verticalAlign: 'middle',
-                    animation: 'blink 1s step-end infinite',
-                  }} />
-                )}
-                <style>{`@keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }`}</style>
+              <div ref={summaryRef}>
+                <SummaryWithCitations text={summary} isStreaming={isLoading} />
               </div>
             )}
           </div>

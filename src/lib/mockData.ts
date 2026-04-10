@@ -1,4 +1,246 @@
-import type { VoteResult, LobbyingResult, NewsResult } from './types';
+import type { VoteResult, LobbyingResult, NewsResult, MEPProfile } from './types';
+
+// ── MEP PROFILES ─────────────────────────────────────────────────────────────
+
+const nrlProfiles: MEPProfile[] = [
+  {
+    name: 'César Luena',
+    party: 'S&D',
+    country: 'ES',
+    vote: 'FOR',
+    note: 'Rapporteur',
+    nationality: 'Spanish',
+    bornYear: 1970,
+    bio: 'Spanish MEP and ENVI committee rapporteur for the Nature Restoration Law. Former regional environment minister for La Rioja, Luena has been the driving legislative force behind the NRL since 2022, negotiating amendments that narrowly secured a majority.',
+    committees: ['ENVI', 'AGRI'],
+    lobbyConnections: [
+      { org: 'WWF European Policy',   meetings: 14, spend: 0.80, sector: 'NGO' },
+      { org: 'Eureau',                meetings: 6,  spend: 1.40, sector: 'Utilities' },
+      { org: 'COPA-COGECA',           meetings: 3,  spend: 3.20, sector: 'Agriculture' },
+    ],
+    pastVotes: [
+      { law: 'European Climate Law',    shortName: 'ClimLaw', vote: 'FOR',     year: 2021 },
+      { law: 'Farm to Fork Strategy',   shortName: 'F2F',     vote: 'FOR',     year: 2021 },
+      { law: 'EU Biodiversity Strategy',shortName: 'BiodivS', vote: 'FOR',     year: 2021 },
+    ],
+  },
+  {
+    name: 'Herbert Dorfmann',
+    party: 'EPP',
+    country: 'IT',
+    vote: 'AGAINST',
+    note: 'EPP shadow rapporteur',
+    nationality: 'Italian',
+    bornYear: 1969,
+    bio: 'South Tyrolean MEP with a deep agricultural constituency base. Long-serving AGRI committee member and EPP shadow rapporteur on the NRL. Led internal EPP opposition, coordinating with farmer lobbies throughout the process.',
+    committees: ['AGRI', 'ENVI'],
+    lobbyConnections: [
+      { org: 'COPA-COGECA',        meetings: 9, spend: 3.20, sector: 'Agriculture' },
+      { org: 'BusinessEurope',     meetings: 4, spend: 2.80, sector: 'Industry' },
+      { org: 'European Landowners',meetings: 3, spend: 1.90, sector: 'Land' },
+    ],
+    pastVotes: [
+      { law: 'Farm to Fork Strategy',   shortName: 'F2F',     vote: 'AGAINST', year: 2021 },
+      { law: 'EU Biodiversity Strategy',shortName: 'BiodivS', vote: 'AGAINST', year: 2021 },
+      { law: 'European Climate Law',    shortName: 'ClimLaw', vote: 'ABSTAIN', year: 2021 },
+    ],
+  },
+  {
+    name: 'Pascal Durand',
+    party: 'Renew',
+    country: 'FR',
+    vote: 'FOR',
+    nationality: 'French',
+    bornYear: 1963,
+    bio: 'French MEP and former Green politician now aligned with Renew. Key swing vote within Renew on environmental legislation, Durand has consistently backed EU climate targets while opposing provisions he views as insufficiently compensatory for rural communities.',
+    committees: ['ENVI', 'JURI'],
+    lobbyConnections: [
+      { org: 'WWF European Policy',  meetings: 8,  spend: 0.80, sector: 'NGO' },
+      { org: 'European Landowners',  meetings: 2,  spend: 1.90, sector: 'Land' },
+    ],
+    pastVotes: [
+      { law: 'European Climate Law',    shortName: 'ClimLaw', vote: 'FOR', year: 2021 },
+      { law: 'CSRD',                    shortName: 'CSRD',    vote: 'FOR', year: 2022 },
+    ],
+  },
+  {
+    name: 'Niclas Herbst',
+    party: 'EPP',
+    country: 'DE',
+    vote: 'AGAINST',
+    nationality: 'German',
+    bornYear: 1985,
+    bio: 'German CDU MEP representing a rural Schleswig-Holstein constituency. Consistent opponent of Green Deal legislation he views as economically damaging to European agriculture and rural communities.',
+    committees: ['AGRI', 'ENVI'],
+    lobbyConnections: [
+      { org: 'BusinessEurope', meetings: 6,  spend: 2.80, sector: 'Industry' },
+      { org: 'COPA-COGECA',    meetings: 5,  spend: 3.20, sector: 'Agriculture' },
+    ],
+    pastVotes: [
+      { law: 'Farm to Fork Strategy',   shortName: 'F2F',     vote: 'AGAINST', year: 2021 },
+      { law: 'European Climate Law',    shortName: 'ClimLaw', vote: 'ABSTAIN', year: 2021 },
+    ],
+  },
+  {
+    name: 'Martin Hojsík',
+    party: 'Renew',
+    country: 'SK',
+    vote: 'FOR',
+    nationality: 'Slovak',
+    bornYear: 1979,
+    bio: 'Slovak environmentalist and Renew MEP. Former Greenpeace campaigner who entered politics in 2019. One of the most environmentally active MEPs in the Renew group, pushing for stronger biodiversity targets throughout NRL negotiations.',
+    committees: ['ENVI'],
+    lobbyConnections: [
+      { org: 'WWF European Policy', meetings: 11, spend: 0.80, sector: 'NGO' },
+      { org: 'Eureau',              meetings: 4,  spend: 1.40, sector: 'Utilities' },
+    ],
+    pastVotes: [
+      { law: 'EU Biodiversity Strategy', shortName: 'BiodivS', vote: 'FOR', year: 2021 },
+      { law: 'European Climate Law',     shortName: 'ClimLaw', vote: 'FOR', year: 2021 },
+    ],
+  },
+];
+
+const aiActProfiles: MEPProfile[] = [
+  {
+    name: 'Brando Benifei',
+    party: 'S&D',
+    country: 'IT',
+    vote: 'FOR',
+    note: 'Co-rapporteur',
+    nationality: 'Italian',
+    bornYear: 1985,
+    bio: 'Italian MEP and IMCO committee co-rapporteur for the AI Act. Led the Parliament\'s side of the trilogue negotiations, pushing for stronger rules on high-risk AI systems and a near-ban on real-time biometric surveillance in public spaces.',
+    committees: ['IMCO', 'LIBE'],
+    lobbyConnections: [
+      { org: 'Mistral AI',           meetings: 8,  spend: 0.90, sector: 'AI Startup' },
+      { org: 'IBM',                  meetings: 5,  spend: 4.20, sector: 'Technology' },
+      { org: 'Google / Alphabet',    meetings: 4,  spend: 8.25, sector: 'Big Tech' },
+    ],
+    pastVotes: [
+      { law: 'GDPR Enforcement', shortName: 'GDPR', vote: 'FOR', year: 2022 },
+      { law: 'Digital Services Act', shortName: 'DSA', vote: 'FOR', year: 2022 },
+    ],
+  },
+  {
+    name: 'Dragoș Tudorache',
+    party: 'Renew',
+    country: 'RO',
+    vote: 'FOR',
+    note: 'Co-rapporteur',
+    nationality: 'Romanian',
+    bornYear: 1978,
+    bio: 'Romanian MEP and LIBE committee co-rapporteur for the AI Act. Former Romanian interior minister with a security background, Tudorache led efforts to balance innovation incentives with fundamental rights protections, particularly around law enforcement uses of AI.',
+    committees: ['LIBE', 'IMCO'],
+    lobbyConnections: [
+      { org: 'Microsoft',         meetings: 9,  spend: 7.10, sector: 'Big Tech' },
+      { org: 'Google / Alphabet', meetings: 7,  spend: 8.25, sector: 'Big Tech' },
+      { org: 'IBM',               meetings: 4,  spend: 4.20, sector: 'Technology' },
+    ],
+    pastVotes: [
+      { law: 'Digital Services Act', shortName: 'DSA', vote: 'FOR', year: 2022 },
+      { law: 'NIS2 Directive',       shortName: 'NIS2', vote: 'FOR', year: 2022 },
+    ],
+  },
+  {
+    name: 'Axel Voss',
+    party: 'EPP',
+    country: 'DE',
+    vote: 'FOR',
+    nationality: 'German',
+    bornYear: 1966,
+    bio: 'German CDU MEP and JURI committee senior member. Voss was a key EPP negotiator on the AI Act, supporting the final text after securing carve-outs for national security applications and lobbying for lighter requirements on foundation model providers.',
+    committees: ['JURI', 'IMCO'],
+    lobbyConnections: [
+      { org: 'Google / Alphabet', meetings: 14, spend: 8.25, sector: 'Big Tech' },
+      { org: 'Microsoft',         meetings: 7,  spend: 7.10, sector: 'Big Tech' },
+      { org: 'Apple',             meetings: 4,  spend: 5.80, sector: 'Big Tech' },
+    ],
+    pastVotes: [
+      { law: 'Article 17 Copyright Directive', shortName: 'Art17', vote: 'FOR',  year: 2019 },
+      { law: 'Digital Services Act',           shortName: 'DSA',   vote: 'FOR',  year: 2022 },
+    ],
+  },
+  {
+    name: 'Patrick Breyer',
+    party: 'Greens',
+    country: 'DE',
+    vote: 'AGAINST',
+    note: 'Biometric surveillance concern',
+    nationality: 'German',
+    bornYear: 1976,
+    bio: 'German Pirate Party MEP sitting with the Greens/EFA group. A digital rights lawyer by training, Breyer voted against the AI Act citing its failure to fully ban biometric mass surveillance and its insufficient restrictions on predictive policing systems.',
+    committees: ['LIBE', 'JURI'],
+    lobbyConnections: [
+      { org: 'Mistral AI', meetings: 3, spend: 0.90, sector: 'AI Startup' },
+    ],
+    pastVotes: [
+      { law: 'Chat Control Regulation', shortName: 'ChatCtrl', vote: 'AGAINST', year: 2022 },
+      { law: 'Digital Services Act',    shortName: 'DSA',      vote: 'FOR',     year: 2022 },
+    ],
+  },
+  {
+    name: 'Svenja Hahn',
+    party: 'Renew',
+    country: 'DE',
+    vote: 'FOR',
+    nationality: 'German',
+    bornYear: 1990,
+    bio: 'German FDP MEP and one of the youngest members of the European Parliament. Focused on digital innovation policy, Hahn advocated for lighter regulatory requirements to protect European AI competitiveness against US and Chinese competitors.',
+    committees: ['IMCO', 'ITRE'],
+    lobbyConnections: [
+      { org: 'Microsoft',      meetings: 8, spend: 7.10, sector: 'Big Tech' },
+      { org: 'Meta Platforms', meetings: 5, spend: 5.50, sector: 'Big Tech' },
+      { org: 'Mistral AI',     meetings: 6, spend: 0.90, sector: 'AI Startup' },
+    ],
+    pastVotes: [
+      { law: 'Digital Markets Act', shortName: 'DMA', vote: 'FOR', year: 2022 },
+      { law: 'Digital Services Act',shortName: 'DSA', vote: 'FOR', year: 2022 },
+    ],
+  },
+];
+
+const farmProfiles: MEPProfile[] = [
+  {
+    name: 'Peter Jahr',
+    party: 'EPP',
+    country: 'DE',
+    vote: 'FOR',
+    note: 'Co-rapporteur',
+    nationality: 'German',
+    bornYear: 1960,
+    bio: 'German CDU MEP and AGRI committee co-rapporteur for the CAP Strategic Plans Regulation. A farmer himself, Jahr navigated the balance between Green Deal conditionality and traditional subsidy continuity, ultimately delivering a text that preserved most direct payment structures.',
+    committees: ['AGRI', 'CONT'],
+    lobbyConnections: [
+      { org: 'COPA-COGECA',          meetings: 12, spend: 3.20, sector: 'Agriculture' },
+      { org: 'EuropaBio',            meetings: 5,  spend: 2.70, sector: 'Agri-biotech' },
+      { org: 'CEJA (Young Farmers)', meetings: 4,  spend: 1.80, sector: 'Agriculture' },
+    ],
+    pastVotes: [
+      { law: 'Farm to Fork Strategy',   shortName: 'F2F',    vote: 'AGAINST', year: 2021 },
+      { law: 'Nature Restoration Law',  shortName: 'NRL',    vote: 'AGAINST', year: 2023 },
+    ],
+  },
+  {
+    name: 'Martin Häusling',
+    party: 'Greens',
+    country: 'DE',
+    vote: 'AGAINST',
+    note: 'Insufficient green conditionality',
+    nationality: 'German',
+    bornYear: 1961,
+    bio: 'German Green MEP and organic farmer. Voted against the final CAP reform text, arguing that the green architecture had been fundamentally weakened by member state flexibility clauses and the removal of binding biodiversity spending targets.',
+    committees: ['AGRI', 'ENVI'],
+    lobbyConnections: [
+      { org: 'WWF European Policy',  meetings: 9,  spend: 0.95, sector: 'NGO' },
+      { org: 'COPA-COGECA',          meetings: 2,  spend: 3.20, sector: 'Agriculture' },
+    ],
+    pastVotes: [
+      { law: 'Nature Restoration Law',   shortName: 'NRL',  vote: 'FOR',     year: 2023 },
+      { law: 'Farm to Fork Strategy',    shortName: 'F2F',  vote: 'FOR',     year: 2021 },
+    ],
+  },
+];
 
 // ── VOTING MOCK DATA ──────────────────────────────────────────────────────────
 
@@ -23,6 +265,7 @@ export const votingData: Record<string, VoteResult> = {
       { name: 'Niclas Herbst',   party: 'EPP',    country: 'DE', vote: 'AGAINST' },
       { name: 'Martin Hojsík',   party: 'Renew',  country: 'SK', vote: 'FOR' },
     ],
+    mepProfiles: nrlProfiles,
     date: '2023-07-11',
     committee: 'ENVI',
     reference: '2022/0195(COD)',
@@ -48,6 +291,7 @@ export const votingData: Record<string, VoteResult> = {
       { name: 'Axel Voss',        party: 'EPP',   country: 'DE', vote: 'FOR' },
       { name: 'Patrick Breyer',   party: 'Greens',country: 'DE', vote: 'AGAINST', note: 'Biometric surveillance concern' },
     ],
+    mepProfiles: aiActProfiles,
     date: '2024-03-13',
     committee: 'IMCO / LIBE',
     reference: '2021/0106(COD)',
@@ -95,6 +339,7 @@ export const votingData: Record<string, VoteResult> = {
       { name: 'Norbert Lins',        party: 'EPP',   country: 'DE', vote: 'FOR' },
       { name: 'Martin Häusling',     party: 'Greens',country: 'DE', vote: 'AGAINST', note: 'Insufficient green conditionality' },
     ],
+    mepProfiles: farmProfiles,
     date: '2021-11-23',
     committee: 'AGRI',
     reference: '2018/0216(COD)',

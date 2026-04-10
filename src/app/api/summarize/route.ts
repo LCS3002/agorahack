@@ -5,29 +5,38 @@ const SYSTEM_PROMPT = `You are Aletheia, a political transparency tool for EU ci
 Given structured data from intelligence modules, write a 3-4 sentence plain-language summary.
 Be direct. Surface what matters. Flag conflicts of interest unprompted if the data shows them.
 Write like The Economist, not like a chatbot. No bullet points. No hedging. State what the data shows.
-Be specific: name names, cite figures, note contradictions. Do not start with "The data shows" or similar.`;
+Be specific: name names, cite figures, note contradictions. Do not start with "The data shows" or similar.
+
+After the summary, add a blank line, then the word SOURCES on its own line, then numbered sources like:
+[1] EP roll-call vote record — date and reference number
+[2] EU Transparency Register — organisation, declared spend, period
+[3] News outlet — headline snippet, date
+
+Only cite sources that are directly referenced in your summary. Use [n] inline in the summary text to mark citations. 2-4 sources maximum.`;
 
 function buildContext(query: string, classification: ClassificationResult, moduleData: ModuleData): string {
   const parts: string[] = [`User query: "${query}"`, `Detected entities: ${classification.entities.join(', ')}`, ''];
 
   if (moduleData.voting) {
     const v = moduleData.voting;
-    parts.push(`VOTING DATA — ${v.lawName} (${v.date}): ${v.votes.for} FOR / ${v.votes.against} AGAINST / ${v.votes.abstain} ABSTAIN. Status: ${v.status}.`);
+    parts.push(`VOTING DATA — ${v.lawName} (${v.date}, Ref. ${v.reference}): ${v.votes.for} FOR / ${v.votes.against} AGAINST / ${v.votes.abstain} ABSTAIN. Status: ${v.status}. Committee: ${v.committee}.`);
     const conflicts = v.partyBreakdown.filter(p => p.against > p.for);
-    if (conflicts.length) parts.push(`Opposing party groups: ${conflicts.map(p => p.party).join(', ')}.`);
+    if (conflicts.length) parts.push(`Opposing party groups: ${conflicts.map(p => `${p.party} (${p.against} against)`).join(', ')}.`);
     const flaggedMEPs = v.keyMEPs.filter(m => m.note);
     if (flaggedMEPs.length) parts.push(`Notable MEPs: ${flaggedMEPs.map(m => `${m.name} (${m.party}, ${m.vote}${m.note ? ' — ' + m.note : ''})`).join('; ')}.`);
+    parts.push(`CITE voting data as: [EP roll-call vote, ${v.date} — Ref. ${v.reference}]`);
   }
 
   if (moduleData.lobbying) {
     const l = moduleData.lobbying;
     parts.push('');
-    parts.push(`LOBBYING DATA — ${l.topic}: Total declared spend €${l.totalDeclaredSpend}M (${l.period}).`);
+    parts.push(`LOBBYING DATA — ${l.topic}: Total declared spend €${l.totalDeclaredSpend}M (${l.period}). Source: EU Transparency Register.`);
     const top3 = l.organizations.slice(0, 3);
     parts.push(`Top lobbyists: ${top3.map(o => `${o.name} (€${o.spend}M, ${o.meetings} meetings)`).join('; ')}.`);
     if (l.conflictFlags.length) {
-      parts.push(`CONFLICT FLAGS: ${l.conflictFlags.map(f => `${f.mepName} (${f.party}) had ${f.meetings} meetings with ${f.lobbyist} and voted ${f.votedFor ? 'FOR' : 'AGAINST'}`).join('; ')}.`);
+      parts.push(`CONFLICT FLAGS: ${l.conflictFlags.map(f => `${f.mepName} (${f.party}) had ${f.meetings} meetings with ${f.lobbyist} (declared €${f.amount}M) and voted ${f.votedFor ? 'FOR' : 'AGAINST'}`).join('; ')}.`);
     }
+    parts.push(`CITE lobbying data as: [EU Transparency Register — ${l.period}]`);
   }
 
   if (moduleData.news) {
@@ -35,6 +44,11 @@ function buildContext(query: string, classification: ClassificationResult, modul
     parts.push('');
     parts.push(`NEWS DATA — ${n.topic}: Overall sentiment ${n.overallSentiment.toFixed(2)} (${n.sentimentLabel}).`);
     parts.push(`Framing divergence — Left: "${n.framingDivergence.left}" | Centre: "${n.framingDivergence.centre}" | Right: "${n.framingDivergence.right}"`);
+    if (n.headlines.length) {
+      const top = n.headlines[0];
+      parts.push(`Key headline: "${top.title}" — ${top.source}, ${top.date}`);
+      parts.push(`CITE news as: [${top.source}, ${top.date} — "${top.title.slice(0, 55)}…"]`);
+    }
   }
 
   return parts.join('\n');

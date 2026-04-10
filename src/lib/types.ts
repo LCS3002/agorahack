@@ -27,6 +27,27 @@ export interface KeyMEP {
   note?: string;
 }
 
+export interface MEPConnection {
+  org: string;
+  meetings: number;
+  spend: number; // €M declared
+  sector: string;
+}
+
+export interface MEPProfile extends KeyMEP {
+  bio: string;
+  committees: string[];
+  bornYear: number;
+  nationality: string;
+  lobbyConnections: MEPConnection[];
+  pastVotes: {
+    law: string;
+    shortName: string;
+    vote: 'FOR' | 'AGAINST' | 'ABSTAIN';
+    year: number;
+  }[];
+}
+
 export interface VoteResult {
   lawName: string;
   shortName: string;
@@ -39,6 +60,7 @@ export interface VoteResult {
   };
   partyBreakdown: PartyVote[];
   keyMEPs: KeyMEP[];
+  mepProfiles?: MEPProfile[];
   date: string;
   committee: string;
   reference: string;
