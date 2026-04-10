@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect, FormEvent } from 'react';
+import { useState, useCallback, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Header }         from '@/components/Header';
-import { ChatPanel }      from '@/components/ChatPanel';
-import { DashboardPanel } from '@/components/DashboardPanel';
-import { StatusBar }      from '@/components/StatusBar';
-import { VotingCard }     from '@/components/cards/VotingCard';
-import { LobbyingCard }   from '@/components/cards/LobbyingCard';
-import { NewsCard }       from '@/components/cards/NewsCard';
+import { Header }           from '@/components/Header';
+import { ChatPanel }        from '@/components/ChatPanel';
+import { DashboardPanel }   from '@/components/DashboardPanel';
+import { StatusBar }        from '@/components/StatusBar';
+import { VotingExpanded }   from '@/components/expanded/VotingExpanded';
+import { LobbyingExpanded } from '@/components/expanded/LobbyingExpanded';
+import { NewsExpanded }     from '@/components/expanded/NewsExpanded';
 import type {
   ClassificationResult,
   ModuleData,
@@ -16,142 +16,6 @@ import type {
   HistoryItem,
 } from '@/lib/types';
 import { selectMockData } from '@/lib/mockDataSelector';
-
-// ── Expand icon ───────────────────────────────────────────────────────────────
-function ExpandIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
-      <path
-        d="M6.5 1H10V4.5M4.5 10H1V6.5M10 1L6 5M5 6L1 10"
-        stroke="currentColor"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-// ── Expanded module overlay ───────────────────────────────────────────────────
-const MODULE_TITLES: Record<ModuleType, string> = {
-  VOTING:   'Voting & Parliament',
-  LOBBYING: 'Lobbying & Money',
-  NEWS:     'News & Sentiment',
-};
-
-function ExpandedOverlay({
-  module,
-  moduleData,
-  onClose,
-}: {
-  module: ModuleType;
-  moduleData: ModuleData;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  const hasData =
-    (module === 'VOTING'   && moduleData.voting)   ||
-    (module === 'LOBBYING' && moduleData.lobbying)  ||
-    (module === 'NEWS'     && moduleData.news);
-
-  return (
-    <motion.div
-      key="overlay-backdrop"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(26,26,24,0.42)',
-        zIndex: 200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px',
-      }}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 16, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0,  scale: 1    }}
-        exit={{    opacity: 0, y: 8,  scale: 0.98 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#F0EDE8',
-          width: '100%',
-          maxWidth: '960px',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          border: '1px solid rgba(26,26,24,0.12)',
-        }}
-      >
-        <div style={{
-          flexShrink: 0,
-          padding: '14px 24px',
-          borderBottom: '1px solid rgba(26,26,24,0.09)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <span style={{
-            fontSize: '9px',
-            fontWeight: 600,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'rgba(26,26,24,0.6)',
-          }}>
-            {MODULE_TITLES[module]}
-          </span>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: '1px solid rgba(26,26,24,0.15)',
-              cursor: 'pointer',
-              color: 'rgba(26,26,24,0.5)',
-              fontSize: '11px',
-              padding: '3px 10px',
-              fontFamily: 'inherit',
-              letterSpacing: '0.08em',
-            }}
-          >
-            ESC
-          </button>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {!hasData ? (
-            <div style={{
-              padding: '60px 32px',
-              textAlign: 'center',
-              fontSize: '12px',
-              fontWeight: 300,
-              color: 'rgba(26,26,24,0.35)',
-            }}>
-              No data yet — run a query first.
-            </div>
-          ) : (
-            <>
-              {module === 'VOTING'   && moduleData.voting   && <VotingCard   data={moduleData.voting}   />}
-              {module === 'LOBBYING' && moduleData.lobbying  && <LobbyingCard data={moduleData.lobbying}  />}
-              {module === 'NEWS'     && moduleData.news      && <NewsCard     data={moduleData.news}      />}
-            </>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 // ── Landing page ──────────────────────────────────────────────────────────────
 function LandingPage({
@@ -416,13 +280,31 @@ export default function Page() {
                 />
               </div>
 
-              <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-                <DashboardPanel
-                  moduleData={moduleData}
-                  activeModules={activeModules}
-                  isLoading={isLoading}
-                  onExpand={setExpandedModule}
-                />
+              <div style={{ flex: 1, overflow: 'hidden', minWidth: 0, position: 'relative' }}>
+                <AnimatePresence mode="wait">
+                  {expandedModule === 'VOTING' && moduleData.voting ? (
+                    <motion.div key="voting-expanded" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.22, ease: 'easeOut' }} style={{ height: '100%' }}>
+                      <VotingExpanded data={moduleData.voting} onCollapse={() => setExpandedModule(null)} />
+                    </motion.div>
+                  ) : expandedModule === 'LOBBYING' && moduleData.lobbying ? (
+                    <motion.div key="lobbying-expanded" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.22, ease: 'easeOut' }} style={{ height: '100%' }}>
+                      <LobbyingExpanded data={moduleData.lobbying} onCollapse={() => setExpandedModule(null)} />
+                    </motion.div>
+                  ) : expandedModule === 'NEWS' && moduleData.news ? (
+                    <motion.div key="news-expanded" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.22, ease: 'easeOut' }} style={{ height: '100%' }}>
+                      <NewsExpanded data={moduleData.news} onCollapse={() => setExpandedModule(null)} />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }} style={{ height: '100%' }}>
+                      <DashboardPanel
+                        moduleData={moduleData}
+                        activeModules={activeModules}
+                        isLoading={isLoading}
+                        onExpand={setExpandedModule}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -431,16 +313,6 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {expandedModule && (
-          <ExpandedOverlay
-            key="expanded"
-            module={expandedModule}
-            moduleData={moduleData}
-            onClose={() => setExpandedModule(null)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
