@@ -17,14 +17,6 @@ import type {
 } from '@/lib/types';
 import { selectMockData } from '@/lib/mockDataSelector';
 
-// ── Demo queries ──────────────────────────────────────────────────────────────
-const DEMO_QUERIES = [
-  'Who lobbied against the Nature Restoration Law?',
-  'How did MEPs vote on the AI Act?',
-  'Is there a conflict of interest around von der Leyen and pharma?',
-  'Show me everything on farm subsidies',
-];
-
 // ── Expand icon ───────────────────────────────────────────────────────────────
 function ExpandIcon() {
   return (
@@ -56,7 +48,6 @@ function ExpandedOverlay({
   moduleData: ModuleData;
   onClose: () => void;
 }) {
-  // Close on ESC
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
@@ -104,7 +95,6 @@ function ExpandedOverlay({
           border: '1px solid rgba(26,26,24,0.12)',
         }}
       >
-        {/* Overlay header */}
         <div style={{
           flexShrink: 0,
           padding: '14px 24px',
@@ -133,17 +123,13 @@ function ExpandedOverlay({
               padding: '3px 10px',
               fontFamily: 'inherit',
               letterSpacing: '0.08em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
             }}
           >
-            <span>ESC</span>
+            ESC
           </button>
         </div>
 
-        {/* Card content — scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           {!hasData ? (
             <div style={{
               padding: '60px 32px',
@@ -152,7 +138,7 @@ function ExpandedOverlay({
               fontWeight: 300,
               color: 'rgba(26,26,24,0.35)',
             }}>
-              No data for this module yet — run a query first.
+              No data yet — run a query first.
             </div>
           ) : (
             <>
@@ -176,6 +162,7 @@ function LandingPage({
   isLoading: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [focused, setFocused] = useState(false);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -204,21 +191,21 @@ function LandingPage({
       }}
     >
       {/* Wordmark */}
-      <div style={{ marginBottom: '56px', textAlign: 'center' }}>
+      <div style={{ marginBottom: '52px', textAlign: 'center' }}>
         <div style={{
           fontSize: '9px',
           fontWeight: 500,
           letterSpacing: '0.28em',
           textTransform: 'uppercase',
-          color: 'rgba(26,26,24,0.3)',
-          marginBottom: '18px',
+          color: 'rgba(26,26,24,0.28)',
+          marginBottom: '20px',
         }}>
           A (01)
         </div>
         <div style={{
-          fontSize: '42px',
+          fontSize: '44px',
           fontWeight: 200,
-          letterSpacing: '0.12em',
+          letterSpacing: '0.14em',
           color: '#1A1A18',
           lineHeight: 1,
         }}>
@@ -227,124 +214,95 @@ function LandingPage({
         <div style={{
           fontSize: '12px',
           fontWeight: 300,
-          color: 'rgba(26,26,24,0.42)',
-          marginTop: '14px',
-          letterSpacing: '0.06em',
+          color: 'rgba(26,26,24,0.4)',
+          marginTop: '16px',
+          letterSpacing: '0.05em',
         }}>
           EU votes, money, and influence — in plain language.
         </div>
       </div>
 
-      {/* Input */}
-      <form
-        onSubmit={handleSubmit}
-        style={{ width: '100%', maxWidth: '580px', marginBottom: '32px' }}
-      >
-        <div style={{ position: 'relative' }}>
+      {/* Input box */}
+      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: '640px' }}>
+        <div style={{
+          border: `1px solid ${focused ? 'rgba(26,26,24,0.4)' : 'rgba(26,26,24,0.14)'}`,
+          background: focused ? 'rgba(26,26,24,0.015)' : 'transparent',
+          transition: 'border-color 0.2s ease, background 0.2s ease',
+          padding: '18px 16px 14px 22px',
+        }}>
           <input
             ref={inputRef}
             autoFocus
             disabled={isLoading}
             autoComplete="off"
             placeholder="Ask about EU politics…"
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             style={{
               width: '100%',
               background: 'transparent',
               border: 'none',
-              borderBottom: '1px solid rgba(26,26,24,0.3)',
               outline: 'none',
               fontFamily: 'inherit',
-              fontSize: '16px',
+              fontSize: '15px',
               fontWeight: 300,
               color: '#1A1A18',
-              padding: '12px 40px 12px 0',
               letterSpacing: '0.01em',
+              lineHeight: 1.5,
               boxSizing: 'border-box',
             }}
           />
-          {/* Submit arrow */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'rgba(26,26,24,0.35)',
-              padding: '4px',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '14px',
+          }}>
+            <span style={{
+              fontSize: '9px',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'rgba(26,26,24,0.2)',
+            }}>
+              {isLoading ? 'Processing…' : 'Return to submit'}
+            </span>
+            <button
+              type="submit"
+              disabled={isLoading}
+              style={{
+                background: isLoading ? 'rgba(26,26,24,0.08)' : '#1A1A18',
+                border: 'none',
+                cursor: isLoading ? 'default' : 'pointer',
+                color: '#F0EDE8',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s ease',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => {
+                if (!isLoading) (e.currentTarget as HTMLElement).style.background = 'rgba(26,26,24,0.7)';
+              }}
+              onMouseLeave={e => {
+                if (!isLoading) (e.currentTarget as HTMLElement).style.background = '#1A1A18';
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path d="M2 6.5h9M7.5 2.5l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </form>
 
-      {/* Suggested queries */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        width: '100%',
-        maxWidth: '580px',
-      }}>
-        <div style={{
-          fontSize: '8.5px',
-          fontWeight: 500,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          color: 'rgba(26,26,24,0.28)',
-          marginBottom: '4px',
-        }}>
-          Suggested
-        </div>
-        {DEMO_QUERIES.map(q => (
-          <button
-            key={q}
-            onClick={() => onSubmit(q)}
-            disabled={isLoading}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(26,26,24,0.1)',
-              padding: '10px 16px',
-              textAlign: 'left',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 300,
-              color: 'rgba(26,26,24,0.55)',
-              lineHeight: 1.4,
-              fontFamily: 'inherit',
-              letterSpacing: '0.01em',
-              transition: 'border-color 0.15s, color 0.15s',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,26,24,0.3)';
-              (e.currentTarget as HTMLElement).style.color = '#1A1A18';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,26,24,0.1)';
-              (e.currentTarget as HTMLElement).style.color = 'rgba(26,26,24,0.55)';
-            }}
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-
-      {/* Footer tag */}
       <div style={{
         position: 'absolute',
-        bottom: '24px',
+        bottom: '28px',
         fontSize: '9px',
         letterSpacing: '0.14em',
-        color: 'rgba(26,26,24,0.2)',
+        color: 'rgba(26,26,24,0.18)',
         textTransform: 'uppercase',
       }}>
         Truth, unconcealed.
@@ -433,12 +391,9 @@ export default function Page() {
     <div style={{ height: '100vh', overflow: 'hidden', background: '#F0EDE8', position: 'relative' }}>
 
       <AnimatePresence mode="wait">
-        {/* ── Landing ────────────────────────────────────────────────────── */}
         {!hasQuery ? (
           <LandingPage key="landing" onSubmit={runQuery} isLoading={isLoading} />
         ) : (
-
-          /* ── Dashboard ─────────────────────────────────────────────────── */
           <motion.div
             key="dashboard"
             initial={{ opacity: 0 }}
@@ -449,7 +404,6 @@ export default function Page() {
             <Header />
 
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-              {/* Chat panel */}
               <div style={{ width: '300px', minWidth: '260px', maxWidth: '340px', flexShrink: 0, overflow: 'hidden' }}>
                 <ChatPanel
                   summary={summary}
@@ -462,7 +416,6 @@ export default function Page() {
                 />
               </div>
 
-              {/* Dashboard — 3 bento windows */}
               <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                 <DashboardPanel
                   moduleData={moduleData}
@@ -478,7 +431,6 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      {/* ── Expanded module overlay ─────────────────────────────────────── */}
       <AnimatePresence>
         {expandedModule && (
           <ExpandedOverlay
