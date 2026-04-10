@@ -12,30 +12,27 @@ interface DashboardPanelProps {
   isLoading: boolean;
 }
 
-// ── Shimmer skeleton rows ─────────────────────────────────────────────────────
-function SkeletonRows({ rows = 5 }: { rows?: number }) {
-  const widths = [92, 78, 85, 65, 88];
+// ── Shimmer skeleton ──────────────────────────────────────────────────────────
+function Skeleton({ rows = 5 }: { rows?: number }) {
+  const widths = [92, 70, 84, 58, 78, 66, 88];
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '24px' }}>
+    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
       {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            height: '10px',
-            width: `${widths[i % widths.length]}%`,
-            background: 'rgba(26,26,24,0.06)',
-            animation: 'shimmer 1.5s ease-in-out infinite',
-            animationDelay: `${i * 0.09}s`,
-          }}
-        />
+        <div key={i} style={{
+          height: '9px',
+          width: `${widths[i % widths.length]}%`,
+          background: 'rgba(26,26,24,0.055)',
+          animation: 'sk 1.4s ease-in-out infinite',
+          animationDelay: `${i * 0.08}s`,
+        }} />
       ))}
-      <style>{`@keyframes shimmer{0%,100%{opacity:.35}50%{opacity:.9}}`}</style>
+      <style>{`@keyframes sk{0%,100%{opacity:.3}50%{opacity:.85}}`}</style>
     </div>
   );
 }
 
-// ── Empty state per column ────────────────────────────────────────────────────
-function EmptyColumn({ label, hint }: { label: string; hint: string }) {
+// ── Empty state ───────────────────────────────────────────────────────────────
+function Empty({ hint }: { hint: string }) {
   return (
     <div style={{
       height: '100%',
@@ -43,107 +40,101 @@ function EmptyColumn({ label, hint }: { label: string; hint: string }) {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '32px 20px',
-      gap: '12px',
+      padding: '24px 20px',
+      gap: '14px',
     }}>
-      {/* Decorative placeholder */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', opacity: 0.1 }}>
-        {[100, 75, 88, 60, 78].map((w, i) => (
-          <div key={i} style={{ height: '6px', width: `${w}%`, background: 'rgba(26,26,24,0.6)' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '100%', opacity: 0.08 }}>
+        {[100, 72, 85, 58].map((w, i) => (
+          <div key={i} style={{ height: '5px', width: `${w}%`, background: 'rgba(26,26,24,0.8)' }} />
         ))}
       </div>
-      <div style={{
-        fontSize: '9px',
-        fontWeight: 500,
-        letterSpacing: '0.16em',
-        textTransform: 'uppercase',
-        color: 'rgba(26,26,24,0.22)',
-        textAlign: 'center',
-        marginTop: '8px',
-      }}>
-        {label}
-      </div>
-      <div style={{
-        fontSize: '11px',
+      <p style={{
+        fontSize: '10px',
         fontWeight: 300,
-        color: 'rgba(26,26,24,0.28)',
+        color: 'rgba(26,26,24,0.3)',
         textAlign: 'center',
-        lineHeight: 1.65,
-        maxWidth: '180px',
+        lineHeight: 1.7,
+        maxWidth: '200px',
+        margin: 0,
       }}>
         {hint}
-      </div>
+      </p>
     </div>
   );
 }
 
-// ── Panel column wrapper ──────────────────────────────────────────────────────
-interface PanelColumnProps {
-  id: ModuleType;
+// ── Bento cell wrapper ────────────────────────────────────────────────────────
+interface BentoCellProps {
   title: string;
-  subtitle: string;
+  sub: string;
   isActive: boolean;
   isLoading: boolean;
+  gridArea: string;
   children: React.ReactNode;
-  borderRight?: boolean;
 }
 
-function PanelColumn({ id, title, subtitle, isActive, isLoading, children, borderRight = true }: PanelColumnProps) {
+function BentoCell({ title, sub, isActive, isLoading, gridArea, children }: BentoCellProps) {
   return (
     <div style={{
+      gridArea,
       display: 'flex',
       flexDirection: 'column',
-      height: '100%',
-      borderRight: borderRight ? '1px solid rgba(26,26,24,0.10)' : 'none',
+      background: '#F0EDE8',
       overflow: 'hidden',
+      position: 'relative',
     }}>
-      {/* Sticky column header */}
+      {/* Cell header */}
       <div style={{
         flexShrink: 0,
-        padding: '14px 20px 12px',
-        borderBottom: '1px solid rgba(26,26,24,0.08)',
+        padding: '12px 18px 10px',
+        borderBottom: '1px solid rgba(26,26,24,0.07)',
         display: 'flex',
-        alignItems: 'baseline',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        background: '#F0EDE8',
+        gap: '8px',
       }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div style={{
-            fontSize: '9px',
+            fontSize: '8.5px',
             fontWeight: 600,
-            letterSpacing: '0.18em',
+            letterSpacing: '0.17em',
             textTransform: 'uppercase',
-            color: isActive ? 'rgba(26,26,24,0.75)' : 'rgba(26,26,24,0.35)',
+            color: isActive ? 'rgba(26,26,24,0.72)' : 'rgba(26,26,24,0.3)',
             transition: 'color 0.3s ease',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}>
             {title}
           </div>
           <div style={{
-            fontSize: '9px',
-            fontWeight: 400,
-            letterSpacing: '0.08em',
-            color: 'rgba(26,26,24,0.28)',
+            fontSize: '8.5px',
+            color: 'rgba(26,26,24,0.25)',
             marginTop: '1px',
+            letterSpacing: '0.06em',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}>
-            {subtitle}
+            {sub}
           </div>
         </div>
-        {/* Active indicator dot */}
+        {/* Status dot */}
         <div style={{
           width: '5px',
           height: '5px',
           borderRadius: '50%',
-          background: isActive
-            ? (isLoading ? '#D4C4A8' : 'rgba(26,26,24,0.5)')
-            : 'rgba(26,26,24,0.1)',
-          transition: 'background 0.4s ease',
           flexShrink: 0,
-          animation: isLoading && isActive ? 'dotpulse 1s ease-in-out infinite' : 'none',
+          background: isActive
+            ? (isLoading ? '#D4C4A8' : 'rgba(26,26,24,0.45)')
+            : 'rgba(26,26,24,0.1)',
+          transition: 'background 0.35s ease',
+          animation: isLoading && isActive ? 'dp 1s ease-in-out infinite' : 'none',
         }} />
-        <style>{`@keyframes dotpulse{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
+        <style>{`@keyframes dp{0%,100%{opacity:.3}50%{opacity:1}}`}</style>
       </div>
 
-      {/* Scrollable content */}
+      {/* Scrollable body */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {children}
       </div>
@@ -151,110 +142,128 @@ function PanelColumn({ id, title, subtitle, isActive, isLoading, children, borde
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-export function DashboardPanel({ moduleData, activeModules, isLoading }: DashboardPanelProps) {
-  const isVotingActive   = activeModules.includes('VOTING');
-  const isLobbyingActive = activeModules.includes('LOBBYING');
-  const isNewsActive     = activeModules.includes('NEWS');
+// ── Animated content switcher ─────────────────────────────────────────────────
+const fade = {
+  hidden:  { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.32, ease: 'easeOut' as const } },
+  exit:    { opacity: 0,       transition: { duration: 0.16 } },
+};
 
-  const contentVariants = {
-    hidden:  { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0,  transition: { duration: 0.38, ease: 'easeOut' as const } },
-    exit:    { opacity: 0, y: -6, transition: { duration: 0.2 } },
-  };
+interface SlotProps {
+  id: string;
+  isLoading: boolean;
+  isActive: boolean;
+  skeletonRows?: number;
+  emptyHint: string;
+  children: React.ReactNode;
+}
+
+function Slot({ id, isLoading, isActive, skeletonRows = 5, emptyHint, children }: SlotProps) {
+  return (
+    <AnimatePresence mode="wait">
+      {isLoading && isActive ? (
+        <motion.div key={`${id}-loading`} variants={fade} initial="hidden" animate="visible" exit="exit">
+          <Skeleton rows={skeletonRows} />
+        </motion.div>
+      ) : isActive && children ? (
+        <motion.div key={`${id}-data`} variants={fade} initial="hidden" animate="visible" exit="exit">
+          {children}
+        </motion.div>
+      ) : (
+        <motion.div key={`${id}-empty`} variants={fade} initial="hidden" animate="visible" exit="exit" style={{ height: '100%' }}>
+          <Empty hint={emptyHint} />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+export function DashboardPanel({ moduleData, activeModules, isLoading }: DashboardPanelProps) {
+  const votingActive   = activeModules.includes('VOTING');
+  const lobbyingActive = activeModules.includes('LOBBYING');
+  const newsActive     = activeModules.includes('NEWS');
 
   return (
+    /*
+     * Bento grid:
+     *   "voting  lobbying"   ← row 1 (55% height)
+     *   "voting  news"       ← row 2 (45% height)
+     *
+     * Voting occupies the full left column (both rows).
+     * Lobbying sits top-right, News bottom-right.
+     * A 1px gap styled as a grid line separates the cells.
+     */
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
+      gridTemplateColumns: '1.15fr 0.85fr',
+      gridTemplateRows: '55% 45%',
+      gridTemplateAreas: `
+        "voting lobbying"
+        "voting news"
+      `,
       height: '100%',
+      gap: '1px',
+      background: 'rgba(26,26,24,0.09)',
       overflow: 'hidden',
     }}>
 
-      {/* ── Column 1: Voting & Parliament ───────────────────────────────── */}
-      <PanelColumn
-        id="VOTING"
+      {/* ── VOTING ──────────────────────────────────────────────────────── */}
+      <BentoCell
         title="Voting & Parliament"
-        subtitle="Roll-call records · MEP positions"
-        isActive={isVotingActive}
-        isLoading={isLoading && isVotingActive}
+        sub="Roll-call records · MEP positions · party breakdown"
+        isActive={votingActive}
+        isLoading={isLoading && votingActive}
+        gridArea="voting"
       >
-        <AnimatePresence mode="wait">
-          {isLoading && isVotingActive ? (
-            <motion.div key="voting-loading" variants={contentVariants} initial="hidden" animate="visible" exit="exit">
-              <SkeletonRows rows={6} />
-            </motion.div>
-          ) : moduleData.voting && isVotingActive ? (
-            <motion.div key="voting-data" variants={contentVariants} initial="hidden" animate="visible" exit="exit">
-              <VotingCard data={moduleData.voting} />
-            </motion.div>
-          ) : (
-            <motion.div key="voting-empty" variants={contentVariants} initial="hidden" animate="visible" exit="exit" style={{ height: '100%' }}>
-              <EmptyColumn
-                label="Voting & Parliament"
-                hint="Ask about a vote, MEP, or legislation to see roll-call records and party positions."
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </PanelColumn>
+        <Slot
+          id="voting"
+          isLoading={isLoading}
+          isActive={votingActive}
+          skeletonRows={8}
+          emptyHint="Ask about a vote, MEP, or legislation to see roll-call records and party positions."
+        >
+          {moduleData.voting && <VotingCard data={moduleData.voting} />}
+        </Slot>
+      </BentoCell>
 
-      {/* ── Column 2: Lobbying & Money ──────────────────────────────────── */}
-      <PanelColumn
-        id="LOBBYING"
+      {/* ── LOBBYING ────────────────────────────────────────────────────── */}
+      <BentoCell
         title="Lobbying & Money"
-        subtitle="Declared spend · Donor networks"
-        isActive={isLobbyingActive}
-        isLoading={isLoading && isLobbyingActive}
+        sub="Declared spend · donor networks · conflict flags"
+        isActive={lobbyingActive}
+        isLoading={isLoading && lobbyingActive}
+        gridArea="lobbying"
       >
-        <AnimatePresence mode="wait">
-          {isLoading && isLobbyingActive ? (
-            <motion.div key="lobbying-loading" variants={contentVariants} initial="hidden" animate="visible" exit="exit">
-              <SkeletonRows rows={6} />
-            </motion.div>
-          ) : moduleData.lobbying && isLobbyingActive ? (
-            <motion.div key="lobbying-data" variants={contentVariants} initial="hidden" animate="visible" exit="exit">
-              <LobbyingCard data={moduleData.lobbying} />
-            </motion.div>
-          ) : (
-            <motion.div key="lobbying-empty" variants={contentVariants} initial="hidden" animate="visible" exit="exit" style={{ height: '100%' }}>
-              <EmptyColumn
-                label="Lobbying & Money"
-                hint="Ask about an industry, company, or regulation to surface declared lobbying spend and conflict flags."
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </PanelColumn>
+        <Slot
+          id="lobbying"
+          isLoading={isLoading}
+          isActive={lobbyingActive}
+          skeletonRows={5}
+          emptyHint="Ask about an industry, regulation, or person to surface lobbying spend and conflict flags."
+        >
+          {moduleData.lobbying && <LobbyingCard data={moduleData.lobbying} />}
+        </Slot>
+      </BentoCell>
 
-      {/* ── Column 3: News & Sentiment ──────────────────────────────────── */}
-      <PanelColumn
-        id="NEWS"
+      {/* ── NEWS ────────────────────────────────────────────────────────── */}
+      <BentoCell
         title="News & Sentiment"
-        subtitle="Media framing · 30-day trend"
-        isActive={isNewsActive}
-        isLoading={isLoading && isNewsActive}
-        borderRight={false}
+        sub="Media framing · 30-day trend · outlet divergence"
+        isActive={newsActive}
+        isLoading={isLoading && newsActive}
+        gridArea="news"
       >
-        <AnimatePresence mode="wait">
-          {isLoading && isNewsActive ? (
-            <motion.div key="news-loading" variants={contentVariants} initial="hidden" animate="visible" exit="exit">
-              <SkeletonRows rows={6} />
-            </motion.div>
-          ) : moduleData.news && isNewsActive ? (
-            <motion.div key="news-data" variants={contentVariants} initial="hidden" animate="visible" exit="exit">
-              <NewsCard data={moduleData.news} />
-            </motion.div>
-          ) : (
-            <motion.div key="news-empty" variants={contentVariants} initial="hidden" animate="visible" exit="exit" style={{ height: '100%' }}>
-              <EmptyColumn
-                label="News & Sentiment"
-                hint="Ask about a topic or person to see media sentiment trends and cross-outlet framing analysis."
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </PanelColumn>
+        <Slot
+          id="news"
+          isLoading={isLoading}
+          isActive={newsActive}
+          skeletonRows={4}
+          emptyHint="Ask about a topic or person to see media sentiment trends and cross-outlet framing analysis."
+        >
+          {moduleData.news && <NewsCard data={moduleData.news} />}
+        </Slot>
+      </BentoCell>
 
     </div>
   );

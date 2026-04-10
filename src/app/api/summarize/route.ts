@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     const context = buildContext(query, classification, moduleData);
 
     const anthropicStream = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 400,
       stream: true,
       system: SYSTEM_PROMPT,
