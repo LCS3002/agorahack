@@ -120,12 +120,12 @@ export default function Page() {
 
       {/* Main content */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-        {/* Left: Chat panel ~35% */}
-        <div style={{ width: '35%', minWidth: '280px', maxWidth: '420px', overflow: 'hidden' }}>
+        {/* Left: Chat panel — fixed width */}
+        <div style={{ width: '300px', minWidth: '260px', maxWidth: '340px', flexShrink: 0, overflow: 'hidden' }}>
           <ChatPanel
             summary={summary}
             isLoading={isLoading}
-            history={history.slice(1)} // exclude current (shown in main area)
+            history={history.slice(1)}
             activeModules={activeModules}
             onSubmit={runQuery}
             onDemoQuery={runQuery}
@@ -133,8 +133,8 @@ export default function Page() {
           />
         </div>
 
-        {/* Right: Dashboard panel ~65% */}
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        {/* Right: 3 information columns — always visible */}
+        <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
           <DashboardPanel
             moduleData={moduleData}
             activeModules={activeModules}
