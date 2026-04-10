@@ -1,0 +1,142 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
+@import "tailwindcss";
+
+/* ─── ARGOS-NOIR DESIGN TOKENS ─────────────────────────────────────────────── */
+:root {
+  /* Core palette */
+  --argos-black:       #000000;
+  --argos-void:        #0a0a0a;
+  --argos-panel:       #0f0f0f;
+  --argos-surface:     #141414;
+  --argos-border:      #1e1e1e;
+  --argos-border-dim:  #161616;
+
+  /* Signal colors */
+  --argos-amber:       #FF8C00;
+  --argos-amber-dim:   #b36200;
+  --argos-amber-glow:  rgba(255, 140, 0, 0.15);
+  --argos-red:         #FF433D;
+  --argos-red-dim:     #b32d29;
+  --argos-red-glow:    rgba(255, 67, 61, 0.15);
+  --argos-green:       #00FF41;   /* data-confirmed */
+  --argos-green-dim:   #00b32d;
+  --argos-muted:       #3a3a3a;
+  --argos-ghost:       #1f1f1f;
+
+  /* Typography */
+  --font-terminal:     "JetBrains Mono", "Fira Code", "Courier New", monospace;
+
+  /* Layout */
+  --header-h:          2.75rem;   /* 44px */
+  --cmdbar-h:          2.25rem;   /* 36px */
+  --statusbar-h:       1.5rem;    /* 24px */
+  --panel-gap:         1px;
+}
+
+@theme inline {
+  --color-background:    var(--argos-black);
+  --color-foreground:    var(--argos-amber);
+  --color-border:        var(--argos-border);
+  --color-surface:       var(--argos-surface);
+  --color-panel:         var(--argos-panel);
+  --color-amber:         var(--argos-amber);
+  --color-amber-dim:     var(--argos-amber-dim);
+  --color-red:           var(--argos-red);
+  --color-red-dim:       var(--argos-red-dim);
+  --color-green:         var(--argos-green);
+  --color-muted:         var(--argos-muted);
+  --font-sans:           var(--font-terminal);
+  --font-mono:           var(--font-terminal);
+}
+
+/* ─── BASE RESET ────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--argos-black);
+  color: var(--argos-amber);
+  font-family: var(--font-terminal);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+  cursor: crosshair;
+}
+
+/* Scanline overlay — subtle CRT texture */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ─── SCROLLBARS ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--argos-black); }
+::-webkit-scrollbar-thumb { background: var(--argos-amber-dim); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--argos-amber); }
+
+/* ─── SELECTION ─────────────────────────────────────────────────────────────── */
+::selection {
+  background: var(--argos-amber);
+  color: var(--argos-black);
+}
+
+/* ─── UTILITY CLASSES ───────────────────────────────────────────────────────── */
+.text-amber      { color: var(--argos-amber); }
+.text-amber-dim  { color: var(--argos-amber-dim); }
+.text-red        { color: var(--argos-red); }
+.text-green      { color: var(--argos-green); }
+.text-muted      { color: var(--argos-muted); }
+
+.border-terminal { border-color: var(--argos-border); }
+.bg-panel        { background-color: var(--argos-panel); }
+.bg-surface      { background-color: var(--argos-surface); }
+
+/* Amber glow on interactive elements */
+.glow-amber:focus,
+.glow-amber:hover {
+  box-shadow: 0 0 0 1px var(--argos-amber), 0 0 12px var(--argos-amber-glow);
+  outline: none;
+}
+
+/* Cursor blink for terminal feel */
+.cursor-blink::after {
+  content: "█";
+  animation: blink 1s step-end infinite;
+  color: var(--argos-amber);
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Panel dividers */
+.panel-divider {
+  background: var(--argos-border);
+}
+
+/* Data tag */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.4rem;
+  height: 1.25rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
