@@ -1,55 +1,22 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
 @import "tailwindcss";
 
-/* ─── ARGOS-NOIR DESIGN TOKENS ─────────────────────────────────────────────── */
-:root {
-  /* Core palette */
-  --argos-black:       #000000;
-  --argos-void:        #0a0a0a;
-  --argos-panel:       #0f0f0f;
-  --argos-surface:     #141414;
-  --argos-border:      #1e1e1e;
-  --argos-border-dim:  #161616;
+/* ── AETHER PALETTE ─────────────────────────────────────────────────────── */
+@theme {
+  --color-cream:      #F0EDE8;
+  --color-ink:        #1A1A18;
+  --color-rose:       #C9A89A;
+  --color-rose-light: #EDE0DC;
+  --color-sand:       #D4C4A8;
+  --color-charcoal:   #4A4A48;
+  --color-warmgrey:   #8A8882;
+  --color-warmgrey-2: #B8B4AE;
+  --color-border:     rgba(26, 26, 24, 0.12);
 
-  /* Signal colors */
-  --argos-amber:       #FF8C00;
-  --argos-amber-dim:   #b36200;
-  --argos-amber-glow:  rgba(255, 140, 0, 0.15);
-  --argos-red:         #FF433D;
-  --argos-red-dim:     #b32d29;
-  --argos-red-glow:    rgba(255, 67, 61, 0.15);
-  --argos-green:       #00FF41;   /* data-confirmed */
-  --argos-green-dim:   #00b32d;
-  --argos-muted:       #3a3a3a;
-  --argos-ghost:       #1f1f1f;
-
-  /* Typography */
-  --font-terminal:     "JetBrains Mono", "Fira Code", "Courier New", monospace;
-
-  /* Layout */
-  --header-h:          2.75rem;   /* 44px */
-  --cmdbar-h:          2.25rem;   /* 36px */
-  --statusbar-h:       1.5rem;    /* 24px */
-  --panel-gap:         1px;
+  --font-display: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
+  --font-body:    var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background:    var(--argos-black);
-  --color-foreground:    var(--argos-amber);
-  --color-border:        var(--argos-border);
-  --color-surface:       var(--argos-surface);
-  --color-panel:         var(--argos-panel);
-  --color-amber:         var(--argos-amber);
-  --color-amber-dim:     var(--argos-amber-dim);
-  --color-red:           var(--argos-red);
-  --color-red-dim:       var(--argos-red-dim);
-  --color-green:         var(--argos-green);
-  --color-muted:         var(--argos-muted);
-  --font-sans:           var(--font-terminal);
-  --font-mono:           var(--font-terminal);
-}
-
-/* ─── BASE RESET ────────────────────────────────────────────────────────────── */
+/* ── BASE RESET ─────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -58,85 +25,112 @@
 
 html, body {
   height: 100%;
-  overflow: hidden;
-  background-color: var(--argos-black);
-  color: var(--argos-amber);
-  font-family: var(--font-terminal);
-  font-size: 12px;
-  line-height: 1.5;
-  letter-spacing: 0.02em;
+  background-color: #F0EDE8;
+  color: #1A1A18;
+  font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  cursor: crosshair;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scanline overlay — subtle CRT texture */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.04) 2px,
-    rgba(0, 0, 0, 0.04) 4px
-  );
-  pointer-events: none;
-  z-index: 9999;
-}
+/* ── SCROLLBAR ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(26, 26, 24, 0.18); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: rgba(26, 26, 24, 0.35); }
 
-/* ─── SCROLLBARS ────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--argos-black); }
-::-webkit-scrollbar-thumb { background: var(--argos-amber-dim); border-radius: 0; }
-::-webkit-scrollbar-thumb:hover { background: var(--argos-amber); }
-
-/* ─── SELECTION ─────────────────────────────────────────────────────────────── */
+/* ── SELECTION ──────────────────────────────────────────────────────────── */
 ::selection {
-  background: var(--argos-amber);
-  color: var(--argos-black);
+  background: #1A1A18;
+  color: #F0EDE8;
 }
 
-/* ─── UTILITY CLASSES ───────────────────────────────────────────────────────── */
-.text-amber      { color: var(--argos-amber); }
-.text-amber-dim  { color: var(--argos-amber-dim); }
-.text-red        { color: var(--argos-red); }
-.text-green      { color: var(--argos-green); }
-.text-muted      { color: var(--argos-muted); }
-
-.border-terminal { border-color: var(--argos-border); }
-.bg-panel        { background-color: var(--argos-panel); }
-.bg-surface      { background-color: var(--argos-surface); }
-
-/* Amber glow on interactive elements */
-.glow-amber:focus,
-.glow-amber:hover {
-  box-shadow: 0 0 0 1px var(--argos-amber), 0 0 12px var(--argos-amber-glow);
-  outline: none;
-}
-
-/* Cursor blink for terminal feel */
-.cursor-blink::after {
-  content: "█";
-  animation: blink 1s step-end infinite;
-  color: var(--argos-amber);
-}
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-
-/* Panel dividers */
-.panel-divider {
-  background: var(--argos-border);
-}
-
-/* Data tag */
-.tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 0.4rem;
-  height: 1.25rem;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+/* ── TYPOGRAPHY UTILITIES ───────────────────────────────────────────────── */
+.label-xs {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  border: 1px solid currentColor;
+  color: rgba(26, 26, 24, 0.45);
+}
+
+.label-sm {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(26, 26, 24, 0.55);
+}
+
+/* ── AETHER CARD ────────────────────────────────────────────────────────── */
+.aether-card {
+  background: #F0EDE8;
+  border: 1px solid rgba(26, 26, 24, 0.12);
+  padding: 24px;
+}
+
+/* ── STATUS PILL ────────────────────────────────────────────────────────── */
+.pill-passed  { border: 1px solid rgba(26,26,24,0.25); color: #4A4A48; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 2px 8px; }
+.pill-rejected{ border: 1px solid rgba(201,168,154,0.6); color: #C9A89A; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 2px 8px; }
+.pill-pending { border: 1px solid rgba(212,196,168,0.6); color: #8A8882; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 2px 8px; }
+
+/* ── SENTIMENT BAR ──────────────────────────────────────────────────────── */
+.sentiment-track {
+  height: 3px;
+  background: rgba(26,26,24,0.08);
+  position: relative;
+  border-radius: 0;
+}
+
+/* ── INPUT UNDERLINE ────────────────────────────────────────────────────── */
+.input-underline {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(26, 26, 24, 0.25);
+  outline: none;
+  width: 100%;
+  font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: #1A1A18;
+  padding: 8px 0;
+  transition: border-color 0.2s ease;
+}
+
+.input-underline::placeholder {
+  color: rgba(26, 26, 24, 0.35);
+}
+
+.input-underline:focus {
+  border-bottom-color: rgba(26, 26, 24, 0.65);
+}
+
+/* ── RECHARTS OVERRIDES ─────────────────────────────────────────────────── */
+.recharts-cartesian-axis-tick-value {
+  font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif !important;
+  font-size: 9px !important;
+  fill: rgba(26, 26, 24, 0.45) !important;
+}
+
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-default-tooltip {
+  background: #F0EDE8 !important;
+  border: 1px solid rgba(26, 26, 24, 0.12) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif !important;
+  padding: 8px 12px !important;
+}
+
+.recharts-tooltip-label {
+  color: rgba(26, 26, 24, 0.55) !important;
+  font-size: 9px !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 4px !important;
 }

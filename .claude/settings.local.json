@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote:*)",
+      "Bash(git init:*)",
+      "Bash(npx:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(rm -rf /c/Users/Lorenz/Documents/agorahacks/src/app/globals.css /c/Users/Lorenz/Documents/agorahacks/src/app/layout.tsx /c/Users/Lorenz/Documents/agorahacks/src/app/page.tsx /c/Users/Lorenz/Documents/agorahacks/src/components /c/Users/Lorenz/Documents/agorahacks/src/lib)",
+      "Bash(mkdir -p /c/Users/Lorenz/Documents/agorahacks/src/lib /c/Users/Lorenz/Documents/agorahacks/src/components/cards /c/Users/Lorenz/Documents/agorahacks/src/app/api/classify /c/Users/Lorenz/Documents/agorahacks/src/app/api/summarize)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(node:*)"
+    ]
+  }
+}

@@ -1,21 +1,28 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { TerminalLayout } from "@/components/terminal/TerminalLayout";
+import type { Metadata } from 'next';
+import { DM_Sans } from 'next/font/google';
+import './globals.css';
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  weight: ['200', '300', '400', '500'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: "ARGOS TERMINAL // EU Legislative Intelligence",
-  description: "Eliminating information asymmetry between lobbyists and citizens.",
+  title: 'ALETHEIA — EU Political Intelligence Terminal',
+  description: 'Truth, unconcealed. Political transparency for EU citizens.',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" className="h-full">
-      <body className="h-full">
-        <TerminalLayout>{children}</TerminalLayout>
+    <html lang="en" className={`${dmSans.variable} h-full`}>
+      <body className="h-full overflow-hidden bg-cream text-ink">
+        {children}
       </body>
     </html>
   );
