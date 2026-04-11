@@ -14,11 +14,11 @@ import { runOpenAISummarizeAgent } from '@/lib/llm/openaiSummarizeAgent';
 type ChatMsg = { role: 'user' | 'assistant' | 'system'; content: any };
 
 // ── Stream event protocol ──────────────────────────────────────────────────────
-// Each line ends with \n. Client parses by prefix:
-//   §T:start:toolName       — tool is running
-//   §T:done:toolName:1|0    — tool finished (1=matched, 0=miss)
-//   §D:base64               — moduleData JSON, base64-encoded
-//   §X:base64               — full summary text, base64-encoded (client animates)
+// Each line ends with \n. Client parses by prefix (all ASCII — § caused build issues):
+//   EVT_T:start:toolName       — tool is running
+//   EVT_T:done:toolName:1|0    — tool finished (1=matched, 0=miss)
+//   EVT_D:base64               — moduleData JSON, base64-encoded
+//   EVT_X:base64               — full summary text, base64-encoded (client animates)
 
 function prepareModuleBase(
   classification: ClassificationResult,
@@ -182,8 +182,8 @@ export async function POST(request: NextRequest) {
       try {
         // ── No LLM: real data tools + fallback text ─────────────────────────
         if (provider === 'none') {
-          if (classification.modules.includes('VOTING')) emit('§T:start:fetch_voting_data');
-          if (classification.modules.includes('NEWS')) emit('§T:start:fetch_news_data');
+          if (classification.modules.includes('VOTING')) emit('EVT_T:start:fetch_voting_data');
+          if (classification.modules.includes('NEWS')) emit('EVT_T:start:fetch_news_data');
 
           const [votingResult, newsResult] = await Promise.allSettled([
             classification.modules.includes('VOTING')
@@ -196,11 +196,11 @@ export async function POST(request: NextRequest) {
 
           if (classification.modules.includes('VOTING')) {
             const ok = votingResult.status === 'fulfilled' && votingResult.value?.queryMatched;
-            emit(`§T:done:fetch_voting_data:${ok ? 1 : 0}`);
+            emit(`EVT_T:done:fetch_voting_data:${ok ? 1 : 0}`);
           }
           if (classification.modules.includes('NEWS')) {
             const ok = newsResult.status === 'fulfilled' && (newsResult.value as GdeltFetchResult | null)?.queryMatched;
-            emit(`§T:done:fetch_news_data:${ok ? 1 : 0}`);
+            emit(`EVT_T:done:fetch_news_data:${ok ? 1 : 0}`);
           }
 
           const toolResults: { name: string; result: Record<string, unknown> }[] = [];
@@ -211,28 +211,30 @@ export async function POST(request: NextRequest) {
 
           let moduleData = mergeModuleData(classification, mockBase, toolResults, { lobbyingSliceMeta });
           moduleData = withSummarySources(moduleData, toolResults);
+          if (moduleData.meta?.voting?.source === 'mock') moduleData = { ...moduleData, voting: undefined };
+          if (moduleData.meta?.news?.source === 'mock') moduleData = { ...moduleData, news: undefined };
           const text = getFallbackSummary(query, moduleData);
 
-          emit(`§D:${Buffer.from(JSON.stringify(moduleData)).toString('base64')}`);
-          emit(`§X:${Buffer.from(text).toString('base64')}`);
+          emit(`EVT_D:${Buffer.from(JSON.stringify(moduleData)).toString('base64')}`);
+          emit(`EVT_X:${Buffer.from(text).toString('base64')}`);
           controller.close();
           return;
         }
 
         // ── With LLM: parallel pre-fetch voting + news ──────────────────────
-        if (classification.modules.includes('VOTING')) emit('§T:start:fetch_voting_data');
-        if (classification.modules.includes('NEWS')) emit('§T:start:fetch_news_data');
+        if (classification.modules.includes('VOTING')) emit('EVT_T:start:fetch_voting_data');
+        if (classification.modules.includes('NEWS')) emit('EVT_T:start:fetch_news_data');
 
         const [votingSettled, newsSettled] = await Promise.allSettled([
           classification.modules.includes('VOTING')
             ? fetchParliamentVotingData(query, classification.entities).then(r => {
-                emit(`§T:done:fetch_voting_data:${r.queryMatched ? 1 : 0}`);
+                emit(`EVT_T:done:fetch_voting_data:${r.queryMatched ? 1 : 0}`);
                 return r;
               })
             : Promise.resolve(null),
           classification.modules.includes('NEWS')
             ? fetchGdeltNewsData(query, classification.entities).then(r => {
-                emit(`§T:done:fetch_news_data:${r.queryMatched ? 1 : 0}`);
+                emit(`EVT_T:done:fetch_news_data:${r.queryMatched ? 1 : 0}`);
                 return r;
               })
             : Promise.resolve(null),
@@ -286,8 +288,8 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
             userContent: userAgentContent,
             priorMessages,
             executeTool: (name, input) => executeTool(name, input),
-            onToolStart: (name) => emit(`§T:start:${name}`),
-            onToolDone: (name, matched) => emit(`§T:done:${name}:${matched ? 1 : 0}`),
+            onToolStart: (name) => emit(`EVT_T:start:${name}`),
+            onToolDone: (name, matched) => emit(`EVT_T:done:${name}:${matched ? 1 : 0}`),
             maxTokens: 520,
           });
           finalText = ft;
@@ -362,10 +364,10 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
 
               for (const block of response.content) {
                 if (block.type === 'tool_use') {
-                  emit(`§T:start:${block.name}`);
+                  emit(`EVT_T:start:${block.name}`);
                   const result = await executeTool(block.name, block.input as Record<string, unknown>);
                   const matched = (result as Record<string, unknown>)?.queryMatched !== false;
-                  emit(`§T:done:${block.name}:${matched ? 1 : 0}`);
+                  emit(`EVT_T:done:${block.name}:${matched ? 1 : 0}`);
                   toolResultsAccumulator.push({ name: block.name, result: result as Record<string, unknown> });
                   toolResultContent.push({
                     type: 'tool_result',
@@ -396,11 +398,16 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
         let moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator, { lobbyingSliceMeta });
         moduleData = withSummarySources(moduleData, toolResultsAccumulator);
 
+        // Don't show fixture data when the query has no real match — clear unmatched modules
+        // so the dashboard renders empty state rather than a wrong scenario.
+        if (moduleData.meta?.voting?.source === 'mock') moduleData = { ...moduleData, voting: undefined };
+        if (moduleData.meta?.news?.source === 'mock') moduleData = { ...moduleData, news: undefined };
+
         finalText = sanitizeAgentSummaryForUser(finalText);
         if (!finalText) finalText = getFallbackSummary(query, moduleData);
 
-        emit(`§D:${Buffer.from(JSON.stringify(moduleData)).toString('base64')}`);
-        emit(`§X:${Buffer.from(finalText).toString('base64')}`);
+        emit(`EVT_D:${Buffer.from(JSON.stringify(moduleData)).toString('base64')}`);
+        emit(`EVT_X:${Buffer.from(finalText).toString('base64')}`);
         controller.close();
 
       } catch (err) {
@@ -410,8 +417,8 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
           let moduleData = mergeModuleData(classification, mockBase, emptyTools, { lobbyingSliceMeta });
           moduleData = withSummarySources(moduleData, emptyTools);
           const text = getFallbackSummary(query, moduleData);
-          emit(`§D:${Buffer.from(JSON.stringify(moduleData)).toString('base64')}`);
-          emit(`§X:${Buffer.from(text).toString('base64')}`);
+          emit(`EVT_D:${Buffer.from(JSON.stringify(moduleData)).toString('base64')}`);
+          emit(`EVT_X:${Buffer.from(text).toString('base64')}`);
         } finally {
           controller.close();
         }

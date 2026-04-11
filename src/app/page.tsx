@@ -67,18 +67,8 @@ function CreamLandingPage({
         <img
           src="/logo_a.png"
           alt="Aletheia"
-          style={{ height: '96px', width: 'auto', marginBottom: '20px', objectFit: 'contain' }}
+          style={{ height: '96px', width: 'auto', marginBottom: '24px', objectFit: 'contain' }}
         />
-        <div style={{
-          fontSize: '9px',
-          fontWeight: 500,
-          letterSpacing: '0.28em',
-          textTransform: 'uppercase',
-          color: 'rgba(26,26,24,0.28)',
-          marginBottom: '20px',
-        }}>
-          A (01)
-        </div>
         <div style={{
           fontSize: '44px',
           fontWeight: 200,
@@ -814,7 +804,7 @@ export default function Page() {
       }
 
       // ── Parse event stream ─────────────────────────────────────────────────
-      // Protocol lines: §T:start/done:toolName[:1|0], §D:base64, §X:base64text
+      // Protocol lines: EVT_T:start/done:toolName[:1|0], EVT_D:base64, EVT_X:base64text
       const reader  = sumRes.body.getReader();
       const decoder = new TextDecoder();
       let lineBuffer = '';
@@ -829,9 +819,9 @@ export default function Page() {
         lineBuffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          if (line.startsWith('§T:')) {
-            // Tool status event
-            const parts = line.slice(3).split(':');
+          if (line.startsWith('EVT_T:')) {
+            // Tool status event — EVT_T:start:toolName or EVT_T:done:toolName:1|0
+            const parts = line.slice(6).split(':');
             const phase = parts[0];   // 'start' | 'done'
             const name  = parts[1];   // 'fetch_voting_data' etc.
             const matched = parts[2] === '1';
@@ -841,17 +831,17 @@ export default function Page() {
               }
               return prev.map(t => t.name === name ? { ...t, phase: 'done', matched } : t);
             });
-          } else if (line.startsWith('§D:')) {
+          } else if (line.startsWith('EVT_D:')) {
             // Module data — update dashboard immediately
             try {
-              const realData: ModuleData = JSON.parse(atob(line.slice(3)));
+              const realData: ModuleData = JSON.parse(atob(line.slice(6)));
               capturedModuleData = realData;
               setModuleData(realData);
             } catch { /* keep mock on parse failure */ }
-          } else if (line.startsWith('§X:')) {
+          } else if (line.startsWith('EVT_X:')) {
             // Full summary text — animate word-by-word client side
             try {
-              const text = atob(line.slice(3));
+              const text = atob(line.slice(6));
               finalSummary = text;
               const words = text.split(' ');
               for (let i = 0; i < words.length; i++) {

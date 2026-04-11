@@ -17,9 +17,12 @@ export async function fetchGdeltNewsData(
     const terms: string[] = [];
     const entity = entities.find(e => e.length > 3);
     if (entity) terms.push(`"${entity}"`);
-    terms.push('European Parliament');
-    const extra = query.split(/\s+/).slice(0, 3).join(' ');
-    if (extra) terms.push(extra);
+    // Only anchor to European Parliament when the query is about EU legislation/politics,
+    // not for named entities like companies or people that may not have EP-specific coverage.
+    const isEuLegislation = /parliament|mep|commission|regulation|directive|legislation|vote|lobby/i.test(query);
+    if (isEuLegislation || !entity) terms.push('European Parliament');
+    const extra = query.split(/\s+/).slice(0, 4).join(' ');
+    if (extra && extra !== entity) terms.push(extra);
 
     const qs = new URLSearchParams({
       query: terms.join(' '),
