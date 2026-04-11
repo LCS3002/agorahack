@@ -4,6 +4,7 @@ import { selectMockData } from '@/lib/mockDataSelector';
 import { mergeModuleData } from '@/lib/pipeline/mergeModuleData';
 import { fetchParliamentVotingData } from '@/lib/sources/parliament';
 import { fetchGdeltNewsData, type GdeltFetchResult } from '@/lib/sources/gdelt';
+import { fetchValyuNewsData } from '@/lib/sources/valyu';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
 import { withSummarySources } from '@/lib/pipeline/summarySources';
@@ -83,13 +84,22 @@ function compactLobbyingSnapshotForPrompt(lobbying: NonNullable<ModuleData['lobb
   });
 }
 
+/** Valyu when key present, GDELT fallback */
+async function fetchNewsData(query: string, entities: string[]): Promise<GdeltFetchResult> {
+  if (process.env.VALYU_API_KEY?.trim()) {
+    try { return await fetchValyuNewsData(query, entities); }
+    catch (e) { console.warn('Valyu failed, falling back to GDELT:', e); }
+  }
+  return fetchGdeltNewsData(query, entities);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeTool(name: string, input: Record<string, any>) {
   switch (name) {
     case 'fetch_voting_data':
       return fetchParliamentVotingData(input.query as string, (input.entities as string[]) ?? []);
     case 'fetch_news_data':
-      return fetchGdeltNewsData(input.query as string, (input.entities as string[]) ?? []);
+      return fetchNewsData(input.query as string, (input.entities as string[]) ?? []);
     case 'get_entity_background':
       return fetchWikipediaEntitySummary(input.entity as string);
     default:
@@ -190,7 +200,7 @@ export async function POST(request: NextRequest) {
               ? fetchParliamentVotingData(query, classification.entities)
               : Promise.resolve(null),
             classification.modules.includes('NEWS')
-              ? fetchGdeltNewsData(query, classification.entities)
+              ? fetchNewsData(query, classification.entities)
               : Promise.resolve(null),
           ]);
 
@@ -233,7 +243,7 @@ export async function POST(request: NextRequest) {
               })
             : Promise.resolve(null),
           classification.modules.includes('NEWS')
-            ? fetchGdeltNewsData(query, classification.entities).then(r => {
+            ? fetchNewsData(query, classification.entities).then(r => {
                 emit(`EVT_T:done:fetch_news_data:${r.queryMatched ? 1 : 0}`);
                 return r;
               })
