@@ -241,7 +241,9 @@ export function NewsExpanded({ data, onCollapse }: Props) {
                       </span>
                     </div>
                     <p style={{ fontSize: '12px', fontWeight: 300, color: 'rgba(26,26,24,0.68)', lineHeight: 1.7, fontStyle: 'italic', margin: 0 }}>
-                      "{text}"
+                      {'\u201c'}
+                      {text}
+                      {'\u201d'}
                     </p>
                   </div>
                 );

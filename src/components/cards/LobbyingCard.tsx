@@ -8,6 +8,9 @@ interface LobbyingCardProps {
 
 export function LobbyingCard({ data }: LobbyingCardProps) {
   const maxSpend = Math.max(...data.organizations.map(o => o.spend));
+  const registerPeople = data.organizations.some(o => o.peopleInvolved !== undefined);
+  const peopleSum = data.organizations.reduce((s, o) => s + (o.peopleInvolved ?? 0), 0);
+  const proxySum = data.organizations.reduce((s, o) => s + o.meetings, 0);
 
   return (
     <div className="aether-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
@@ -30,10 +33,10 @@ export function LobbyingCard({ data }: LobbyingCardProps) {
           </div>
           <div>
             <div style={{ fontSize: '22px', fontWeight: 200, color: '#1A1A18' }}>
-              {data.organizations.reduce((s, o) => s + o.meetings, 0)}
+              {registerPeople ? peopleSum : proxySum}
             </div>
             <div style={{ fontSize: '8px', fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.4)', marginTop: '1px' }}>
-              Total Meetings
+              {registerPeople ? 'People (decl., Σ)' : 'Total Meetings'}
             </div>
           </div>
           <div>
@@ -78,7 +81,9 @@ export function LobbyingCard({ data }: LobbyingCardProps) {
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <span style={{ fontSize: '11px', fontWeight: 300, color: 'rgba(26,26,24,0.65)' }}>
-                    {org.meetings} mtgs
+                    {org.peopleInvolved != null
+                      ? `${org.peopleInvolved} ppl · est. ${org.meetings}`
+                      : `${org.meetings} mtgs`}
                   </span>
                   <span style={{ fontSize: '13px', fontWeight: 400, color: '#1A1A18' }}>
                     €{org.spend.toFixed(2)}M
@@ -102,6 +107,35 @@ export function LobbyingCard({ data }: LobbyingCardProps) {
       </div>
 
       {/* Conflict flags */}
+      {(data.partialConflicts?.length ?? 0) > 0 && (
+        <div>
+          <div className="label-xs" style={{ marginBottom: '10px', color: 'rgba(26,26,24,0.45)' }}>
+            Heuristic signals (partial)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {(data.partialConflicts ?? []).map((s) => (
+              <div
+                key={s.label}
+                style={{
+                  border: '1px solid rgba(26,26,24,0.1)',
+                  padding: '8px 10px',
+                  fontSize: '10px',
+                  fontWeight: 300,
+                  color: 'rgba(26,26,24,0.6)',
+                  lineHeight: 1.45,
+                }}
+              >
+                <span style={{ fontWeight: 500, color: '#1A1A18' }}>{s.label}</span>
+                <span style={{ fontSize: '8px', marginLeft: '6px', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)' }}>
+                  {s.severity}
+                </span>
+                <div style={{ marginTop: '4px' }}>{s.reason}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {data.conflictFlags.length > 0 && (
         <div>
           <div className="label-xs" style={{ marginBottom: '10px', color: '#C9A89A' }}>

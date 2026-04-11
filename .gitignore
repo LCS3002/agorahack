@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+
+# ODP Transparency Register XLS (see https://data.europa.eu/data/datasets/transparency-register?locale=en)
+src/data/ODP10-04-2026.xls
