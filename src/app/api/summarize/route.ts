@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import type { ClassificationResult, ModuleData, ModuleSliceMeta } from '@/lib/types';
 import { selectMockData } from '@/lib/mockDataSelector';
 import { mergeModuleData } from '@/lib/pipeline/mergeModuleData';
-import { fetchParliamentVotingData, parseProcedureProcessId } from '@/lib/sources/parliament';
+import { fetchParliamentVotingData } from '@/lib/sources/parliament';
 import { fetchGdeltNewsData } from '@/lib/sources/gdelt';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
@@ -19,6 +19,28 @@ function prepareModuleBase(
     lobbyingSliceMeta = reg.sliceMeta;
   }
   return { mockBase, lobbyingSliceMeta };
+}
+
+/** Compact JSON for the model when we pre-fetch voting (same payload shape as fetch_voting_data). */
+function compactVotingSnapshotForPrompt(v: Record<string, unknown>): string {
+  const md = v.matchedDocuments as Array<{ title?: string; reference?: string }> | undefined;
+  const rv = v.recentVotes as
+    | Array<{ for?: number; against?: number; abstain?: number; date?: string; label?: string }>
+    | undefined;
+  const d = md?.[0];
+  const r = rv?.[0];
+  return JSON.stringify({
+    queryMatched: v.queryMatched,
+    reference: d?.reference,
+    lawTitle: d?.title,
+    voteLabel: r?.label,
+    for: r?.for,
+    against: r?.against,
+    abstain: r?.abstain,
+    date: r?.date,
+    shortName: v.shortName,
+    committee: v.committee,
+  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +65,7 @@ For every query:
 2. Call fetch_news_data if NEWS module is needed
 3. Call get_entity_background for the primary entity to add context
 4. After receiving tool results, write a 3-4 sentence plain-language summary
+5. If the user message includes a "Pre-fetched voting record" JSON block, those figures and procedure reference are authoritative for the vote — do not claim that voting tools returned no data when that block is present
 
 Rules for the summary:
 - Write like The Economist: direct, specific, no hedging, no bullet points
@@ -168,6 +191,17 @@ export async function POST(request: NextRequest) {
       },
     ];
 
+    let prefetchedVoting: Record<string, unknown> | null = null;
+    if (classification.modules.includes('VOTING')) {
+      const pv = await fetchParliamentVotingData(query, classification.entities);
+      if (pv.queryMatched) prefetchedVoting = pv as unknown as Record<string, unknown>;
+    }
+
+    const prefetchNote =
+      prefetchedVoting
+        ? `\n\nPre-fetched voting record for this query (authoritative for vote totals and procedure; use in your summary):\n${compactVotingSnapshotForPrompt(prefetchedVoting)}\n`
+        : '';
+
     const messages: Parameters<typeof client.messages.create>[0]['messages'] = [
       {
         role: 'user',
@@ -176,11 +210,11 @@ Modules needed: ${classification.modules.join(', ')}
 Entities detected: ${classification.entities.join(', ') || 'none'}
 Timeframe: ${classification.timeframe}
 
-Fetch the relevant data and write your summary.`,
+Fetch the relevant data and write your summary.${prefetchNote}`,
       },
     ];
 
-    const toolResultsAccumulator: { name: string; result: Record<string, unknown> }[] = [];
+    let toolResultsAccumulator: { name: string; result: Record<string, unknown> }[] = [];
     let finalText = '';
 
     // Agentic loop — max 3 rounds
@@ -221,20 +255,9 @@ Fetch the relevant data and write your summary.`,
       }
     }
 
-    if (classification.modules.includes('VOTING')) {
-      const hay = [query, ...classification.entities].join(' ');
-      if (parseProcedureProcessId(hay)) {
-        const canonical = await fetchParliamentVotingData(query, classification.entities);
-        if (canonical.queryMatched) {
-          const ix = toolResultsAccumulator.findIndex(t => t.name === 'fetch_voting_data');
-          const entry = {
-            name: 'fetch_voting_data' as const,
-            result: canonical as unknown as Record<string, unknown>,
-          };
-          if (ix >= 0) toolResultsAccumulator[ix] = entry;
-          else toolResultsAccumulator.push(entry);
-        }
-      }
+    if (classification.modules.includes('VOTING') && prefetchedVoting) {
+      const rest = toolResultsAccumulator.filter(t => t.name !== 'fetch_voting_data');
+      toolResultsAccumulator = [...rest, { name: 'fetch_voting_data', result: prefetchedVoting }];
     }
 
     const moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator, { lobbyingSliceMeta });

@@ -344,6 +344,30 @@ export const votingData: Record<string, VoteResult> = {
     committee: 'AGRI',
     reference: '2018/0216(COD)',
   },
+
+  digitalServicesAct: {
+    lawName: 'Digital Services Act',
+    shortName: 'DSA',
+    status: 'PASSED',
+    votes: { for: 539, against: 54, abstain: 30, total: 623 },
+    partyBreakdown: [],
+    keyMEPs: [],
+    date: '2022-07-05',
+    committee: 'IMCO',
+    reference: '2020/0361(COD)',
+  },
+
+  digitalMarketsAct: {
+    lawName: 'Digital Markets Act',
+    shortName: 'DMA',
+    status: 'PASSED',
+    votes: { for: 588, against: 11, abstain: 31, total: 630 },
+    partyBreakdown: [],
+    keyMEPs: [],
+    date: '2022-07-05',
+    committee: 'ITRE / IMCO',
+    reference: '2020/0374(COD)',
+  },
 };
 
 // ── LOBBYING MOCK DATA ────────────────────────────────────────────────────────
@@ -365,6 +389,32 @@ export const lobbyingData: Record<string, LobbyingResult> = {
       { mepName: 'Herbert Dorfmann', party: 'EPP', meetings: 9, votedFor: false, lobbyist: 'COPA-COGECA', amount: 3.2 },
       { mepName: 'Niclas Herbst',    party: 'EPP', meetings: 6, votedFor: false, lobbyist: 'BusinessEurope', amount: 2.8 },
     ],
+  },
+
+  digitalServicesAct: {
+    topic: 'Digital Services Act',
+    totalDeclaredSpend: 42.0,
+    period: '2020–2024',
+    registryUrl: 'https://ec.europa.eu/transparencyregister',
+    organizations: [
+      { rank: 1, name: 'Meta Platforms',       spend: 6.2, meetings: 72, sector: 'Big Tech' },
+      { rank: 2, name: 'Google / Alphabet',    spend: 5.8, meetings: 68, sector: 'Big Tech' },
+      { rank: 3, name: 'European Consumer Org', spend: 0.4, meetings: 28, sector: 'NGO' },
+    ],
+    conflictFlags: [],
+  },
+
+  digitalMarketsAct: {
+    topic: 'Digital Markets Act',
+    totalDeclaredSpend: 38.0,
+    period: '2020–2024',
+    registryUrl: 'https://ec.europa.eu/transparencyregister',
+    organizations: [
+      { rank: 1, name: 'Microsoft',            spend: 5.5, meetings: 55, sector: 'Big Tech' },
+      { rank: 2, name: 'Apple',                spend: 4.8, meetings: 42, sector: 'Big Tech' },
+      { rank: 3, name: 'Spotify',              spend: 1.2, meetings: 24, sector: 'Tech' },
+    ],
+    conflictFlags: [],
   },
 
   aiAct: {
@@ -464,6 +514,48 @@ export const newsData: Record<string, NewsResult> = {
       left:   'Landmark but compromised. Necessary first step, gutted by agricultural lobbying.',
       centre: 'Narrow passage signals polarisation. Implementation will face legal challenges.',
       right:  'Regulatory overreach. Family farms sacrificed for ideological environmentalism.',
+    },
+  },
+
+  digitalServicesAct: {
+    topic: 'Digital Services Act',
+    overallSentiment: 0.08,
+    sentimentLabel: 'MIXED',
+    sentimentHistory: [
+      { date: daysAgo(20), score: 0.05 },
+      { date: daysAgo(14), score: 0.12 },
+      { date: daysAgo(7), score: 0.08 },
+      { date: daysAgo(0), score: 0.08 },
+    ],
+    headlines: [
+      { source: 'Politico EU', title: 'Parliament backs Digital Services Act in landslide vote', sentiment: 0.15, date: daysAgo(10), lean: 'CENTRE' },
+      { source: 'FT', title: 'EU tech rules: platforms face new liability for illegal content', sentiment: 0.02, date: daysAgo(12), lean: 'CENTRE' },
+      { source: 'EURACTIV', title: 'DSA trilogue: member states resist stricter very large platform rules', sentiment: -0.22, date: daysAgo(18), lean: 'RIGHT' },
+    ],
+    framingDivergence: {
+      left: 'Long overdue accountability for Big Tech; enforcement will be the real test.',
+      centre: 'Historic single-market rules; VLOP designation shifts power to Brussels.',
+      right: 'Over-regulation risks pushing services offshore and chilling speech.',
+    },
+  },
+
+  digitalMarketsAct: {
+    topic: 'Digital Markets Act',
+    overallSentiment: 0.1,
+    sentimentLabel: 'MIXED',
+    sentimentHistory: [
+      { date: daysAgo(18), score: 0.08 },
+      { date: daysAgo(9), score: 0.11 },
+      { date: daysAgo(0), score: 0.1 },
+    ],
+    headlines: [
+      { source: 'Reuters', title: 'EU lawmakers approve Digital Markets Act to rein in tech gatekeepers', sentiment: 0.12, date: daysAgo(11), lean: 'CENTRE' },
+      { source: 'Wired', title: 'DMA: what “gatekeeper” status means for Apple and Google', sentiment: 0.05, date: daysAgo(14), lean: 'LEFT' },
+    ],
+    framingDivergence: {
+      left: 'Breaks monopoly power; complements DSA for platform accountability.',
+      centre: 'Ex ante rules for gatekeepers — a global regulatory experiment.',
+      right: 'Risks harming European digital champions and innovation.',
     },
   },
 
