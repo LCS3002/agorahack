@@ -206,10 +206,35 @@ function MEPView({ profile, data }: { profile: MEPProfile; data: VoteResult }) {
                 <span style={{ fontSize: '8px', color: 'rgba(26,26,24,0.4)', fontStyle: 'italic' }}>{profile.note}</span>
               )}
             </div>
+            {profile.photoUrl && (
+              <img
+                src={profile.photoUrl}
+                alt=""
+                width={80}
+                height={80}
+                style={{
+                  display: 'block',
+                  borderRadius: 6,
+                  objectFit: 'cover',
+                  marginBottom: '12px',
+                  border: '1px solid rgba(26,26,24,0.08)',
+                }}
+              />
+            )}
             <div style={{ fontSize: '22px', fontWeight: 200, color: '#1A1A18', lineHeight: 1.2, marginBottom: '4px' }}>{profile.name}</div>
             <div style={{ fontSize: '10px', color: 'rgba(26,26,24,0.45)' }}>
               {profile.nationality} · {profile.party} · b. {profile.bornYear}
             </div>
+            {profile.officialPageUrl && (
+              <a
+                href={profile.officialPageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: '9px', color: 'rgba(26,26,24,0.42)', marginTop: '6px', display: 'inline-block' }}
+              >
+                Official page →
+              </a>
+            )}
           </div>
 
           {/* Bio */}

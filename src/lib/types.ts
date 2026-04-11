@@ -27,6 +27,8 @@ export interface KeyMEP {
   country: string;
   vote: 'FOR' | 'AGAINST' | 'ABSTAIN';
   note?: string;
+  /** Present in HowTheyVote-derived JSON; used for EP enrichment */
+  memberId?: number;
 }
 
 export interface MEPConnection {
@@ -41,6 +43,10 @@ export interface MEPProfile extends KeyMEP {
   committees: string[];
   bornYear: number;
   nationality: string;
+  /** EP portrait URL when enriched from open data */
+  photoUrl?: string;
+  /** MEP site or europarl profile */
+  officialPageUrl?: string;
   lobbyConnections: MEPConnection[];
   pastVotes: {
     law: string;

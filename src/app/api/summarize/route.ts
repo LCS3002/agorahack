@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import type { ClassificationResult, ModuleData, ModuleSliceMeta } from '@/lib/types';
 import { selectMockData } from '@/lib/mockDataSelector';
 import { mergeModuleData } from '@/lib/pipeline/mergeModuleData';
-import { fetchParliamentVotingData } from '@/lib/sources/parliament';
+import { fetchParliamentVotingData, parseProcedureProcessId } from '@/lib/sources/parliament';
 import { fetchGdeltNewsData } from '@/lib/sources/gdelt';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
@@ -39,7 +39,7 @@ async function executeTool(name: string, input: Record<string, any>) {
 const AGENT_SYSTEM = `You are Aletheia, an EU political intelligence agent with access to real-time data tools.
 
 For every query:
-1. Call fetch_voting_data if VOTING module is needed
+1. Call fetch_voting_data if VOTING module is needed — use the user's exact query string (include procedure refs like 2020/0361(COD) verbatim; do not paraphrase or drop them)
 2. Call fetch_news_data if NEWS module is needed
 3. Call get_entity_background for the primary entity to add context
 4. After receiving tool results, write a 3-4 sentence plain-language summary
@@ -218,6 +218,22 @@ Fetch the relevant data and write your summary.`,
         }
 
         messages.push({ role: 'user', content: toolResultContent });
+      }
+    }
+
+    if (classification.modules.includes('VOTING')) {
+      const hay = [query, ...classification.entities].join(' ');
+      if (parseProcedureProcessId(hay)) {
+        const canonical = await fetchParliamentVotingData(query, classification.entities);
+        if (canonical.queryMatched) {
+          const ix = toolResultsAccumulator.findIndex(t => t.name === 'fetch_voting_data');
+          const entry = {
+            name: 'fetch_voting_data' as const,
+            result: canonical as unknown as Record<string, unknown>,
+          };
+          if (ix >= 0) toolResultsAccumulator[ix] = entry;
+          else toolResultsAccumulator.push(entry);
+        }
       }
     }
 

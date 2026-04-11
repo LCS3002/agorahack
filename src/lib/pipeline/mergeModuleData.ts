@@ -1,11 +1,15 @@
 import type {
   ClassificationResult,
+  KeyMEP,
+  MEPProfile,
   ModuleData,
   ModuleDataMeta,
   ModuleSliceMeta,
   NewsHeadline,
   SentimentPoint,
 } from '@/lib/types';
+import { formatCountryAlpha2 } from '@/lib/countryDisplay';
+import { lookupHowTheyVoteVoteExtras } from '@/lib/sources/howTheyVote';
 
 export interface MergeModuleDataOptions {
   /** When set, overrides default lobbying provenance (e.g. register snapshot) */
@@ -29,7 +33,18 @@ export function mergeModuleData(
       const r = result as {
         queryMatched?: boolean;
         matchedDocuments?: Array<{ title: string; reference: string; date: string }>;
-        recentVotes?: Array<{ for: number; against: number; abstain: number; date: string; label: string }>;
+        recentVotes?: Array<{
+          for: number;
+          against: number;
+          abstain: number;
+          date: string;
+          label: string;
+          howTheyVoteVoteId?: number;
+        }>;
+        shortName?: string;
+        committee?: string;
+        keyMEPs?: KeyMEP[];
+        mepProfiles?: MEPProfile[];
       };
       if (!r.queryMatched) continue;
 
@@ -37,6 +52,15 @@ export function mergeModuleData(
       const votes = r.recentVotes ?? [];
       const doc = docs[0];
       const vote = votes[0];
+      const htvExtras =
+        vote?.howTheyVoteVoteId != null ? lookupHowTheyVoteVoteExtras(vote.howTheyVoteVoteId) : null;
+
+      const keyMEPsFromExtras =
+        htvExtras?.keyMEPs?.map(k => ({
+          ...k,
+          country: formatCountryAlpha2(k.country),
+        })) ?? [];
+
       if (out.voting && (doc || vote)) {
         out.voting = {
           ...out.voting,
@@ -54,6 +78,17 @@ export function mergeModuleData(
             },
             status: vote.for > vote.against ? 'PASSED' : 'REJECTED',
           } : {}),
+          ...(htvExtras ? { partyBreakdown: htvExtras.partyBreakdown } : {}),
+          ...(r.shortName ? { shortName: r.shortName } : {}),
+          ...(typeof r.committee === 'string'
+            ? { committee: r.committee.trim() || out.voting.committee }
+            : {}),
+          ...(r.keyMEPs && r.keyMEPs.length > 0
+            ? { keyMEPs: r.keyMEPs }
+            : htvExtras?.keyMEPs?.length
+              ? { keyMEPs: keyMEPsFromExtras }
+              : {}),
+          ...(r.mepProfiles && r.mepProfiles.length > 0 ? { mepProfiles: r.mepProfiles } : {}),
         };
       }
     }
@@ -110,7 +145,7 @@ function buildModuleMeta(
       meta.voting = {
         source: 'hybrid',
         partial: true,
-        label: 'EP open data (docs/votes) + roll-call fixture',
+        label: 'EP API v2 + HowTheyVote (totals, party breakdown, key MEPs from roll-call index)',
       };
     } else {
       meta.voting = {
