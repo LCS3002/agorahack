@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, FormEvent } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header }           from '@/components/Header';
 import { ChatPanel }        from '@/components/ChatPanel';
@@ -64,10 +65,13 @@ function CreamLandingPage({
         onClick={onBack}
         style={{ marginBottom: '52px', textAlign: 'center', cursor: onBack ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
-        <img
+        <Image
           src="/logo_a.png"
-          alt="Aletheia"
-          style={{ height: '96px', width: 'auto', marginBottom: '24px', objectFit: 'contain' }}
+          alt=""
+          width={96}
+          height={96}
+          style={{ marginBottom: '24px', objectFit: 'contain' }}
+          priority
         />
         <div style={{
           fontSize: '44px',
@@ -277,7 +281,7 @@ function LandingPage({
       }}>
         {/* Logo — matches Header.tsx exactly */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logo_a.png" alt="Aletheia" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+          <Image src="/logo_a.png" alt="" width={36} height={36} style={{ objectFit: 'contain' }} priority />
           <div style={{ width: 7, height: 7, background: '#C9A89A' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span style={{ fontSize: 20, fontWeight: 200, letterSpacing: '0.18em', color: '#1A1A18', lineHeight: 1 }}>
@@ -941,11 +945,17 @@ export default function Page() {
 
             {/* ── Mock data banner ── */}
             {(() => {
+              if (!hasQuery || isLoading) return null;
               const meta = moduleData.meta;
-              if (!meta || !hasQuery) return null;
+              // Show banner when: a module has mock meta OR was requested but returned no data
               const mockModules = (
                 ['voting', 'lobbying', 'news'] as const
-              ).filter(k => meta[k]?.source === 'mock').map(k => k.toUpperCase());
+              ).filter(k => {
+                if (meta?.[k]?.source === 'mock') return true;
+                // Module was active but cleared (no real data found)
+                if (activeModules.includes(k.toUpperCase() as typeof activeModules[number]) && !moduleData[k]) return true;
+                return false;
+              }).map(k => k.toUpperCase());
               if (mockModules.length === 0) return null;
               return (
                 <div style={{
@@ -973,7 +983,7 @@ export default function Page() {
                       <span style={{ fontWeight: 600, color: 'rgba(26,26,24,0.55)' }}>
                         {mockModules.join(', ')}
                       </span>
-                      {' '}using scenario fixture — no live API match for this query
+                      {' '}— no live data match for this query
                     </span>
                   )}
                   <button
