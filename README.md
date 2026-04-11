@@ -1,9 +1,25 @@
 ```
-  ▄▄▄  ▄▄▄  ▄▄▄▄▄  ▄  ▄  ▄▄▄  ▄▄▄  ▄▄▄
- █   █ █  █ █      █  █ █   █  ┐  █ █  █
- █▄▄▄█ █  █ █▄▄▄   █▀▀█ █▄▄▄█  ▄▄▄▀ █▄▄█
- █   █ █  █ █      █  █ █   █ ▀     █   █
- █   █ █▄▄█ █▄▄▄▄▄ █  █ █   █  ▄▄▄▄▄█   █
+ ░░░░░  ░░     ░░░░░░░ ░░░░░░░ ░░  ░░ ░░░░░░░ ░░░  ░░  ░░
+░░   ░░ ░░     ░░         ░░   ░░  ░░ ░░      ░░░░ ░░  ░░
+░░░░░░░ ░░     ░░░░░      ░░   ░░░░░░ ░░░░░   ░░ ░░░░  ░░░░░
+░░   ░░ ░░     ░░         ░░   ░░  ░░ ░░      ░░  ░░░  ░░  ░
+░░   ░░ ░░░░░░ ░░░░░░░    ░░   ░░  ░░ ░░░░░░░ ░░   ░░  ░░░░░
+```
+
+```
+              · · · · · · · · · · · · ·
+          · · ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ · ·
+        · ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ·
+      · ░ ▓ ▓ ░ ▓ ▓ ░ ▓ ▓ ░ ▓ ▓ ░ ▓ ▓ ░ ░ ·
+     · ░ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ░ ░ ·
+    · ░ ▓ ▓ ░ ▓ ▓ ░ ▓ ▓ ░ · · ░ ▓ ▓ ░ ▓ ▓ ░ ·
+    · ░ ░ ▓ ░ ░ ▓ ░ ░ ▓ ░ · · ░ ▓ ░ ░ ▓ ░ ░ ·
+    · ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ·
+     · · ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ · ·
+         · · · · · · · · · · · · · · · · · ·
+              · · ░ ░ ░ ░ ░ ░ ░ ░ · ·
+                · · · · · · · · · ·
+             EU PARLIAMENT · STRASBOURG
 ```
 
 # ALETHEIA · EU Political Intelligence
@@ -253,11 +269,11 @@ src/
 
 Built at **AgoraHacks 2026** in 48 hours.
 
-| | Contributor | Role |
-|---|---|---|
-| 🏗️ | **Lorenz** ([@LCS3002](https://github.com/LCS3002)) | Architecture, UI/UX, AI agent orchestration, Three.js landing |
-| 🔬 | **Yichen** ([@yichen](https://github.com/yichen)) | Data pipeline, EU Transparency Register integration, provenance system |
-| 🎯 | **Evelyn** | Product, research, narrative design |
+| Contributor | |
+|---|---|
+| **Lorenz** · [@LCS3002](https://github.com/LCS3002) | |
+| **Evelyn** · [@gunjyo0817](https://github.com/gunjyo0817) | |
+| **Milos** | |
 
 ---
 
