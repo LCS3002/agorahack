@@ -3,6 +3,7 @@ import type { LobbyingResult } from '@/lib/types';
 import type { TransparencyRegisterRecord, ScoredRegisterOrg } from './types';
 import { extractSearchTerms } from './keywords';
 import { getTransparencyRegisterRecords, getTransparencyRegisterSource } from './loadRegister';
+import { normalizeSearchQuery } from '@/lib/normalizeQuery';
 
 const REGISTRY_INFO_URL = 'https://ec.europa.eu/info/relations-with-citizens/transparency-register_en';
 
@@ -190,13 +191,11 @@ export function buildLobbyingFromRegisterSnapshot(
     };
   }
 
-  // Build a readable topic hint from the raw query, stripping common question-word prefixes
-  const cleanedQuery = query
-    .replace(/^(what|how|who|when|tell me about|explain|show me|give me)\s+(happened|is|are|was|were|about)?\s*/i, '')
-    .trim();
+  // Build a readable topic hint from the query, stripping question-word preamble
+  const cleanedQuery = normalizeSearchQuery(query, entities);
   const topicHint =
     entities[0] ??
-    (cleanedQuery ? `EU lobbying — ${cleanedQuery.slice(0, 55)}` : 'EU Transparency Register matches');
+    (cleanedQuery ? cleanedQuery.slice(0, 60) : 'EU Transparency Register matches');
 
   const lobbying = mapToLobbyingResult(topicHint, scored);
   const partialConflicts = buildPartialConflicts(scored.slice(0, 5), terms);

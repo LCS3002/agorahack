@@ -25,10 +25,14 @@ function CreamLandingPage({
   onSubmit,
   isLoading,
   onBack,
+  history,
+  onHistoryRestore,
 }: {
   onSubmit: (q: string) => void;
   isLoading: boolean;
   onBack?: () => void;
+  history?: import('@/lib/types').HistoryItem[];
+  onHistoryRestore?: (item: import('@/lib/types').HistoryItem) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
@@ -163,6 +167,38 @@ function CreamLandingPage({
           </div>
         </div>
       </form>
+
+      {/* Recent conversations */}
+      {history && history.length > 0 && onHistoryRestore && (
+        <div style={{ width: '100%', maxWidth: '640px', marginTop: '28px' }}>
+          <div style={{ fontSize: '8.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.3)', marginBottom: '10px' }}>
+            Recent
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            {history.slice(0, 5).map(item => (
+              <button
+                key={item.id}
+                onClick={() => onHistoryRestore(item)}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  background: 'transparent', border: 'none', borderBottom: '1px solid rgba(26,26,24,0.07)',
+                  padding: '10px 0', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', gap: '12px',
+                  transition: 'opacity 0.12s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.6'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 300, color: '#1A1A18', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                  {item.query}
+                </span>
+                <span style={{ fontSize: '9px', color: 'rgba(26,26,24,0.28)', flexShrink: 0 }}>
+                  {new Date(item.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{
         position: 'absolute',
@@ -706,6 +742,9 @@ export default function Page() {
   const [showApp,        setShowApp]        = useState(false);
   const [expandedModule, setExpandedModule] = useState<ModuleType | null>(null);
   const [mockBannerCollapsed, setMockBannerCollapsed] = useState(false);
+  // ── Conversation state (follow-up messages in current session) ─────────────
+  const [conversationMessages, setConversationMessages] = useState<{query: string; summary: string}[]>([]);
+  const [currentQuery, setCurrentQuery] = useState('');
 
   // ── localStorage persistence ──────────────────────────────────────────────
   useEffect(() => {
@@ -745,19 +784,46 @@ export default function Page() {
     } catch { /* ignore */ }
   }, []);
 
-  const runQuery = useCallback(async (query: string) => {
-    if (!query.trim() || isLoading) return;
-
-    const t0 = Date.now();
-    setIsLoading(true);
-    setHasQuery(true);
+  const handleNewChat = useCallback(() => {
+    setHasQuery(false);
     setSummary('');
     setActiveModules([]);
     setModuleData({});
     setModuleContext({});
     setTiming(null);
     setToolStatus([]);
+    setConversationMessages([]);
+    setCurrentQuery('');
+    setExpandedModule(null);
     setMockBannerCollapsed(false);
+  }, []);
+
+  const runQuery = useCallback(async (query: string) => {
+    if (!query.trim() || isLoading) return;
+
+    const isFollowUp = hasQuery;  // Already showing a result → follow-up message
+    const t0 = Date.now();
+    setIsLoading(true);
+    setHasQuery(true);
+    setToolStatus([]);
+    setMockBannerCollapsed(false);
+
+    if (!isFollowUp) {
+      // New conversation: reset everything
+      setSummary('');
+      setActiveModules([]);
+      setModuleData({});
+      setModuleContext({});
+      setTiming(null);
+      setConversationMessages([]);
+    } else {
+      // Follow-up: save current to conversation thread, keep module data
+      if (summary && currentQuery) {
+        setConversationMessages(prev => [...prev, { query: currentQuery, summary }]);
+      }
+      setSummary('');  // clear for new streaming
+    }
+    setCurrentQuery(query);
 
     let classification: ClassificationResult;
     let capturedModuleData: ModuleData = {};
@@ -770,23 +836,26 @@ export default function Page() {
       });
       classification = await classRes.json();
 
-      setActiveModules(classification.modules);
-      setModuleContext(classification.moduleContext ?? {});
-      // Show mock data immediately while agent fetches real data
-      const mockData = selectMockData(classification, query);
-      capturedModuleData = mockData;
-      setModuleData(mockData);
+      if (!isFollowUp) {
+        setActiveModules(classification.modules);
+        setModuleContext(classification.moduleContext ?? {});
+        // Show mock data immediately while agent fetches real data
+        const mockData = selectMockData(classification, query);
+        capturedModuleData = mockData;
+        setModuleData(mockData);
+      } else {
+        capturedModuleData = moduleData;
+      }
 
-      // Pass last 3 history items for multi-turn context (newest first)
-      const conversationHistory = history.slice(0, 3).map(h => ({
-        query: h.query,
-        summary: h.summary,
-      }));
+      // Use current conversation messages as context (not full cross-session history)
+      const convHistory = isFollowUp
+        ? [...conversationMessages, ...(summary && currentQuery ? [{ query: currentQuery, summary }] : [])]
+        : [];
 
       const sumRes = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, classification, conversationHistory }),
+        body: JSON.stringify({ query, classification, conversationHistory: convHistory }),
       });
 
       if (!sumRes.body) {
@@ -868,7 +937,7 @@ export default function Page() {
       setIsLoading(false);
       setTiming(Date.now() - t0);
     }
-  }, [isLoading, history]);
+  }, [isLoading, hasQuery, summary, currentQuery, conversationMessages, moduleData]);
 
   return (
     <div style={{ height: '100vh', overflow: 'hidden', background: '#F0EDE8', position: 'relative' }}>
@@ -882,6 +951,8 @@ export default function Page() {
             onSubmit={runQuery}
             isLoading={isLoading}
             onBack={() => setShowApp(false)}
+            history={history}
+            onHistoryRestore={handleHistoryRestore}
           />
         ) : (
           <motion.div
@@ -891,7 +962,7 @@ export default function Page() {
             transition={{ duration: 0.28 }}
             style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}
           >
-            <Header onLogoClick={() => { setShowApp(false); setHasQuery(false); setSummary(''); setActiveModules([]); setModuleData({}); setModuleContext({}); setTiming(null); }} />
+            <Header onLogoClick={() => { setShowApp(false); setHasQuery(false); setSummary(''); setActiveModules([]); setModuleData({}); setModuleContext({}); setTiming(null); setConversationMessages([]); setCurrentQuery(''); }} />
 
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
               <div style={{ width: '300px', minWidth: '260px', maxWidth: '340px', flexShrink: 0, overflow: 'hidden' }}>
@@ -907,6 +978,9 @@ export default function Page() {
                   hasQuery={hasQuery}
                   onHistoryRestore={handleHistoryRestore}
                   onClearHistory={handleClearHistory}
+                  conversationMessages={conversationMessages}
+                  currentQuery={currentQuery}
+                  onNewChat={handleNewChat}
                 />
               </div>
 

@@ -103,6 +103,12 @@ interface ChatPanelProps {
   hasQuery: boolean;
   onHistoryRestore: (item: HistoryItem) => void;
   onClearHistory?: () => void;
+  /** Prior messages in the current conversation session */
+  conversationMessages?: {query: string; summary: string}[];
+  /** The query that produced the currently streaming/shown summary */
+  currentQuery?: string;
+  /** Start a new conversation (clears dashboard) */
+  onNewChat?: () => void;
 }
 
 const DEMO_QUERIES = [
@@ -289,15 +295,22 @@ export function ChatPanel({
   hasQuery,
   onHistoryRestore,
   onClearHistory,
+  conversationMessages = [],
+  currentQuery = '',
+  onNewChat,
 }: ChatPanelProps) {
   const inputRef   = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'CHAT' | 'HISTORY'>('CHAT');
   const [clearHistoryConfirmOpen, setClearHistoryConfirmOpen] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (summaryRef.current) {
       summaryRef.current.scrollTop = summaryRef.current.scrollHeight;
+    }
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [summary]);
 
@@ -322,8 +335,6 @@ export function ChatPanel({
     if (inputRef.current) inputRef.current.value = '';
   }
 
-  // History items shown in the inline CHAT view (all except the active one)
-  const chatHistory = history.slice(1).reverse();
   // All items for HISTORY tab (newest first)
   const allHistory = [...history];
 
@@ -340,6 +351,7 @@ export function ChatPanel({
         display: 'flex',
         borderBottom: '1px solid rgba(26,26,24,0.09)',
         flexShrink: 0,
+        alignItems: 'stretch',
       }}>
         {(['CHAT', 'HISTORY'] as const).map(tab => (
           <button
@@ -365,6 +377,31 @@ export function ChatPanel({
             {tab}{tab === 'HISTORY' && history.length > 0 ? ` (${history.length})` : ''}
           </button>
         ))}
+        {hasQuery && onNewChat && (
+          <button
+            onClick={onNewChat}
+            title="New conversation"
+            style={{
+              padding: '10px 12px',
+              background: 'none',
+              border: 'none',
+              borderBottom: '1.5px solid transparent',
+              marginBottom: '-1px',
+              cursor: 'pointer',
+              color: 'rgba(26,26,24,0.35)',
+              fontFamily: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(26,26,24,0.7)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(26,26,24,0.35)'; }}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* ── HISTORY tab ── */}
@@ -572,7 +609,7 @@ export function ChatPanel({
 
       {/* ── CHAT tab ── */}
       {activeTab === 'CHAT' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '28px 24px 0', minHeight: 0 }}>
+        <div ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '28px 24px 0', minHeight: 0 }}>
 
           {/* Empty state */}
           {!hasQuery && !isLoading && (
@@ -612,37 +649,29 @@ export function ChatPanel({
             </div>
           )}
 
-          {/* Prior queries (all except the active one) */}
-          {chatHistory.length > 0 && (
+          {/* Prior messages in current conversation */}
+          {conversationMessages.length > 0 && (
             <div style={{ marginBottom: '24px' }}>
-              {chatHistory.map((item) => (
-                <div key={item.id} style={{ borderBottom: '1px solid rgba(26,26,24,0.07)', padding: '16px 0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 400, color: 'rgba(26,26,24,0.75)', letterSpacing: '0.02em' }}>
-                      {item.query}
-                    </span>
-                    <span style={{ fontSize: '9px', color: 'rgba(26,26,24,0.3)', flexShrink: 0, marginLeft: '8px' }}>
-                      {formatTime(item.timestamp)}
-                    </span>
+              {conversationMessages.map((msg, idx) => (
+                <div key={idx} style={{ borderBottom: '1px solid rgba(26,26,24,0.07)', padding: '16px 0' }}>
+                  {/* User query bubble */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                    <div style={{
+                      background: 'rgba(26,26,24,0.06)', padding: '7px 12px', maxWidth: '85%',
+                      fontSize: '11px', fontWeight: 400, color: 'rgba(26,26,24,0.78)', lineHeight: 1.4,
+                    }}>
+                      {msg.query}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
-                    {item.modules.map(m => (
-                      <span key={m} style={{
-                        fontSize: '8px', fontWeight: 500, letterSpacing: '0.12em',
-                        textTransform: 'uppercase' as const, color: MODULE_COLORS[m],
-                        border: '1px solid', borderColor: MODULE_COLORS[m], padding: '1px 5px', opacity: 0.7,
-                      }}>
-                        {m}
-                      </span>
-                    ))}
-                  </div>
+                  {/* Assistant response preview */}
                   <p style={{
                     fontSize: '11px', fontWeight: 300, color: 'rgba(26,26,24,0.5)',
-                    lineHeight: 1.65, fontStyle: 'italic',
-                    display: '-webkit-box', WebkitLineClamp: 2,
+                    lineHeight: 1.65,
+                    display: '-webkit-box', WebkitLineClamp: 3,
                     WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
+                    margin: 0,
                   }}>
-                    {item.summary.split('\nSOURCES\n')[0]}
+                    {msg.summary.split('\nSOURCES\n')[0].replace(/\*\*/g, '')}
                   </p>
                 </div>
               ))}
@@ -652,6 +681,17 @@ export function ChatPanel({
           {/* Active summary */}
           {(isLoading || summary) && (
             <div style={{ marginBottom: '24px' }}>
+              {/* Current query as user bubble */}
+              {currentQuery && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+                  <div style={{
+                    background: 'rgba(26,26,24,0.06)', padding: '7px 12px', maxWidth: '85%',
+                    fontSize: '11px', fontWeight: 400, color: 'rgba(26,26,24,0.78)', lineHeight: 1.4,
+                  }}>
+                    {currentQuery}
+                  </div>
+                </div>
+              )}
               <div style={{
                 fontSize: '9px', fontWeight: 500, letterSpacing: '0.16em',
                 textTransform: 'uppercase', color: 'rgba(26,26,24,0.4)', marginBottom: '14px',
