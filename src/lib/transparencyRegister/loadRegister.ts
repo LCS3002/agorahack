@@ -3,6 +3,27 @@ import path from 'path';
 import type { TransparencyRegisterRecord } from './types';
 import registerSample from '@/data/transparency-register-sample.json';
 
+/** Decode common HTML entities that appear in portal exports. */
+function decodeEntities(str: string): string {
+  if (!str || !str.includes('&')) return str;
+  return str
+    .replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'");
+}
+
+function cleanRecord(r: TransparencyRegisterRecord): TransparencyRegisterRecord {
+  return {
+    ...r,
+    organisation_name: decodeEntities(r.organisation_name),
+    activities_summary: decodeEntities(r.activities_summary),
+    policy_areas: r.policy_areas.map(decodeEntities),
+  };
+}
+
 let cache: TransparencyRegisterRecord[] | null = null;
 let cacheSource: 'full' | 'sample' = 'sample';
 
@@ -29,7 +50,7 @@ export function getTransparencyRegisterRecords(): TransparencyRegisterRecord[] {
       const raw = fs.readFileSync(fullPath, 'utf8');
       const data = JSON.parse(raw) as unknown;
       if (isValidFullRegister(data)) {
-        cache = data;
+        cache = data.map(cleanRecord);
         cacheSource = 'full';
         return cache;
       }
@@ -38,7 +59,7 @@ export function getTransparencyRegisterRecords(): TransparencyRegisterRecord[] {
     /* use sample */
   }
 
-  cache = registerSample as TransparencyRegisterRecord[];
+  cache = (registerSample as TransparencyRegisterRecord[]).map(cleanRecord);
   cacheSource = 'sample';
   return cache;
 }

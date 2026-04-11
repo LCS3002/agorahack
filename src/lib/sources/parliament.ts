@@ -161,12 +161,28 @@ export function processIdFromLegislationKeywords(text: string): string | null {
     !hasAsylumPact &&
     (q.includes('asylum procedures') || q.includes('2016/0224') || q.includes('2016-0224'));
 
+  // Nature Restoration Law — EP voted June 2024
+  const hasNatureRestoration =
+    q.includes('nature restoration') ||
+    q.includes('nature restoration law') ||
+    q.includes('2022/0195');
+  // European Climate Law / Green Deal — voted June 2021
+  const hasGreenDeal =
+    q.includes('green deal') ||
+    q.includes('european green deal') ||
+    q.includes('climate law') ||
+    q.includes('european climate law') ||
+    q.includes('fit for 55') ||
+    q.includes('2020/0036');
+
   if (hasDsa) return '2020-0361';
   if (hasDma) return '2020-0374';
   if (hasAi) return '2021-0106';
   // Asylum and Migration Management Regulation — flagship regulation of the 2024 Pact
   if (hasAsylumPact) return '2020-0279';
   if (hasAsylumProcedures) return '2016-0224';
+  if (hasNatureRestoration) return '2022-0195';
+  if (hasGreenDeal) return '2020-0036';
   return null;
 }
 

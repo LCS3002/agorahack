@@ -38,5 +38,20 @@ export function sanitizeAgentSummaryForUser(raw: string): string {
     ''
   ).replace(/\s{2,}/g, ' ').trim();
 
+  // Strip Unicode replacement characters (U+FFFD) and other junk that appears
+  // when TNG/R1 models output multi-byte chars that get mangled in transmission.
+  t = t.replace(/\uFFFD/g, '').replace(/[\uFFFE\uFFFF]/g, '');
+
+  // Decode common HTML entities that sneak in from LLM-generated text
+  if (t.includes('&')) {
+    t = t
+      .replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(parseInt(n, 10)))
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'");
+  }
+
   return t.trim();
 }
