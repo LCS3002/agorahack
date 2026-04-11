@@ -326,23 +326,23 @@ function LandingPage({
             color: '#1A1A18',
             lineHeight: 0.93,
             letterSpacing: '-3px',
-            marginBottom: 12,
+            marginBottom: 20,
             userSelect: 'none',
           }}>
             EU power,<br />
             <span style={{ color: 'rgba(26,26,24,0.28)' }}>in plain language.</span>
           </h1>
 
-          {/* Stats row — sits below the heading */}
-          <div style={{ display: 'flex', gap: 48, marginBottom: 16, pointerEvents: 'none' }}>
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 40, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(26,26,24,0.08)', pointerEvents: 'none' }}>
             {[
               { val: '705', label: 'MEPs Tracked' },
               { val: '€1.9B+', label: 'Declared Spend' },
               { val: '27', label: 'Member States' },
             ].map(s => (
-              <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontSize: 18, fontWeight: 500, color: 'rgba(26,26,24,0.85)', letterSpacing: '-0.5px' }}>{s.val}</span>
-                <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(26,26,24,0.3)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{s.label}</span>
+              <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 16, fontWeight: 500, color: 'rgba(26,26,24,0.8)', letterSpacing: '-0.3px' }}>{s.val}</span>
+                <span style={{ fontSize: 9, fontWeight: 400, color: 'rgba(26,26,24,0.3)', letterSpacing: '0.6px', textTransform: 'uppercase' }}>{s.label}</span>
               </div>
             ))}
           </div>
@@ -350,8 +350,8 @@ function LandingPage({
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 40 }}>
             {/* Description */}
             <p style={{
-              fontSize: 13, fontWeight: 300, color: 'rgba(26,26,24,0.5)',
-              lineHeight: 1.8, maxWidth: 520,
+              fontSize: 13, fontWeight: 300, color: 'rgba(26,26,24,0.45)',
+              lineHeight: 1.7, maxWidth: 440,
               userSelect: 'text',
             }}>
               Ask any question about European Parliament votes, lobbying spend, or media sentiment.
