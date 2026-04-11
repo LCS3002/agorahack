@@ -1,8 +1,12 @@
 /**
- * Local index built from HowTheyVote `votes.csv.gz` (main votes per procedure).
+ * Local index built from HowTheyVote `votes.csv.gz` (main votes per procedure)
+ * and `member_votes` aggregates (party breakdown + key MEP picks).
  * @see https://github.com/HowTheyVote/data — `npm run data:howtheyvote`
  */
 import howTheyVoteIndex from '@/data/howtheyvote-main-by-procedure.json';
+import voteExtras from '@/data/howtheyvote-vote-extras.json';
+
+import type { KeyMEP, PartyVote } from '@/lib/types';
 
 export type HowTheyVoteMainRow = {
   id: number;
@@ -56,4 +60,12 @@ export function lookupHowTheyVoteMainVote(opts: {
   }
 
   return null;
+}
+
+export function lookupHowTheyVoteVoteExtras(voteId: number): {
+  partyBreakdown: PartyVote[];
+  keyMEPs: KeyMEP[];
+} | null {
+  const row = (voteExtras as Record<string, { partyBreakdown: PartyVote[]; keyMEPs: KeyMEP[] }>)[String(voteId)];
+  return row ?? null;
 }

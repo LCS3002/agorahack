@@ -3,7 +3,10 @@
  * Roll-call totals: HowTheyVote CSV snapshot (`lookupHowTheyVoteMainVote`), not EP open API.
  */
 
-import { lookupHowTheyVoteMainVote } from '@/lib/sources/howTheyVote';
+import { committeeLabelFromProcedureEvents } from '@/lib/epProcedureCommittees';
+import type { KeyMEP, MEPProfile } from '@/lib/types';
+import { enrichKeyMepProfiles } from '@/lib/sources/epMepEnrichment';
+import { lookupHowTheyVoteMainVote, lookupHowTheyVoteVoteExtras } from '@/lib/sources/howTheyVote';
 
 export interface ParliamentVotingFetchResult {
   matchedDocuments: Array<{ title: string; reference: string; date: string }>;
@@ -13,8 +16,17 @@ export interface ParliamentVotingFetchResult {
     against: number;
     abstain: number;
     date: string;
+    /** HowTheyVote `votes.csv` id — join to `howtheyvote-vote-extras.json` */
+    howTheyVoteVoteId?: number;
   }>;
   queryMatched: boolean;
+  /** Report / dossier short label (e.g. A9-0188/2023) */
+  shortName?: string;
+  /** Lead committees from procedure events */
+  committee?: string;
+  /** Enriched key MEPs (country alpha-2, EP names) */
+  keyMEPs?: KeyMEP[];
+  mepProfiles?: MEPProfile[];
 }
 
 const EP_V2 = 'https://data.europarl.europa.eu/api/v2';
@@ -200,8 +212,33 @@ export async function fetchParliamentVotingData(
     const eventsUrl = `${EP_V2}/procedures/${encodeURIComponent(processId)}/events`;
     const eventsJson = await fetchJson(eventsUrl);
     const events = (eventsJson?.data ?? []) as Record<string, unknown>[];
+    const committee = committeeLabelFromProcedureEvents(events);
+    const shortName =
+      htv?.reference?.trim() ||
+      (procTitle.length > 48 ? `${procTitle.slice(0, 46)}…` : procTitle) ||
+      label;
+
+    const loadEnrichedMeps = async (voteDateStr: string) => {
+      if (!htv) return {};
+      const extras = lookupHowTheyVoteVoteExtras(htv.id);
+      const raw = extras?.keyMEPs as Array<KeyMEP & { memberId?: number }> | undefined;
+      const picks =
+        raw
+          ?.filter((k): k is KeyMEP & { memberId: number } => typeof k.memberId === 'number')
+          .map(k => ({
+            memberId: k.memberId,
+            name: k.name,
+            party: k.party,
+            country: k.country,
+            vote: k.vote,
+          })) ?? [];
+      if (!picks.length) return {};
+      return enrichKeyMepProfiles(picks, voteDateStr || htvDate);
+    };
+
     const plenaryVotes = events.filter(isPlenaryVoteEvent);
     if (plenaryVotes.length === 0) {
+      const enr = await loadEnrichedMeps(htvDate);
       return {
         matchedDocuments: [
           {
@@ -216,10 +253,14 @@ export async function fetchParliamentVotingData(
                 label: htv.displayTitle || procTitle || label,
                 ...htvTallies(),
                 date: htvDate,
+                howTheyVoteVoteId: htv.id,
               },
             ]
           : [],
         queryMatched: true,
+        shortName,
+        committee,
+        ...enr,
       };
     }
 
@@ -232,6 +273,7 @@ export async function fetchParliamentVotingData(
     const sittingId = sittingIdFromPlenaryVoteActivityId(activityId);
     if (!sittingId) {
       const d = String(latestPv.activity_date ?? '');
+      const enr = await loadEnrichedMeps(d || htvDate);
       return {
         matchedDocuments: [
           {
@@ -246,10 +288,14 @@ export async function fetchParliamentVotingData(
                 label: htv.displayTitle || procTitle || label,
                 ...htvTallies(),
                 date: d || htvDate,
+                howTheyVoteVoteId: htv.id,
               },
             ]
           : [],
         queryMatched: true,
+        shortName,
+        committee,
+        ...enr,
       };
     }
 
@@ -267,6 +313,7 @@ export async function fetchParliamentVotingData(
     }
     if (!voteLabel) voteLabel = procTitle || label;
 
+    const enr = await loadEnrichedMeps(voteDate || htvDate);
     return {
       matchedDocuments: [
         {
@@ -280,9 +327,13 @@ export async function fetchParliamentVotingData(
           label: voteLabel,
           ...htvTallies(),
           date: voteDate || htvDate,
+          ...(htv ? { howTheyVoteVoteId: htv.id } : {}),
         },
       ],
       queryMatched: true,
+      shortName,
+      committee,
+      ...enr,
     };
   } catch {
     return { matchedDocuments: [], recentVotes: [], queryMatched: false };
