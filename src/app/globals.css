@@ -14,6 +14,7 @@
 
   --font-display: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
   --font-body:    var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
+  --font-serif:   var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
 }
 
 /* ── BASE RESET ─────────────────────────────────────────────────────────── */

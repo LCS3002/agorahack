@@ -1,4 +1,4 @@
-export function Header() {
+export function Header({ onLogoClick }: { onLogoClick?: () => void }) {
   return (
     <header
       style={{
@@ -12,7 +12,15 @@ export function Header() {
       }}
     >
       {/* Wordmark */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+      <div
+        onClick={onLogoClick}
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: '12px',
+          cursor: onLogoClick ? 'pointer' : 'default',
+        }}
+      >
         <span
           style={{
             fontSize: '20px',
@@ -36,7 +44,7 @@ export function Header() {
         </span>
       </div>
 
-      {/* Right label — like the Alkemis paint card */}
+      {/* Right label */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
         <span
           style={{
