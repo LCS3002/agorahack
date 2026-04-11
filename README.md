@@ -142,15 +142,63 @@ ALETHEIA tracks every query in a persistent conversation history:
 
 Warm, typographic, deliberately calm. EU politics is already loud enough.
 
-| Token | Value | Use |
-|---|---|---|
-| Background | `#F0EDE8` | Cream — all surfaces |
-| Ink | `#1A1A18` | Primary text, dark elements |
-| Accent | `#C9A89A` | Conflict / negative / citations |
-| Neutral | `#8A8882` | News module, secondary text |
-| Sand | `#D4C4A8` | Loading states |
+### Ethos
 
-All layout in CSS Grid. Inline styles only — no Tailwind. Framer Motion for transitions. Recharts for sentiment trend. Pure SVG for hemicycle and lobby network graph. Three.js + OrbitControls for the landing blob.
+The interface takes no position. Cream surfaces and ink-opacity hierarchies keep the visual temperature low so the data speaks. The accent — rose — marks conflict, opposition, and citations: wherever ALETHEIA surfaces tension, the colour signals it without editorialising. Every element earns its place; nothing decorates without informing.
+
+### Colour
+
+| Token | Hex | Role |
+|---|---|---|
+| **Cream** | `#F0EDE8` | All surfaces — background, cards, inputs |
+| **Ink** | `#1A1A18` | Primary text and all foreground elements |
+| **Rose** | `#C9A89A` | Conflict signals · opposition votes · citations |
+| **Sand** | `#D4C4A8` | Loading skeletons · secondary accent |
+| **Warmgrey** | `#8A8882` | News module · secondary text · CENTRE lean |
+| **Charcoal** | `#4A4A48` | Tertiary labels · status text |
+
+Opacity on Ink creates the full tonal scale — from `1.0` (primary text) down to `0.05` (hairline backgrounds) — without introducing extra hues.
+
+| Opacity | Value | Use |
+|---|---|---|
+| 82% | `rgba(26,26,24,0.82)` | FOR votes |
+| 65% | `rgba(26,26,24,0.65)` | Body text · LEFT lean |
+| 45% | `rgba(26,26,24,0.45)` | Secondary labels |
+| 25% | `rgba(26,26,24,0.25)` | Borders |
+| 12% | `rgba(26,26,24,0.12)` | Card borders |
+| 08% | `rgba(26,26,24,0.08)` | Dividers · skeleton track |
+
+### Module colour language
+
+| Module | Indicator | Semantic pair |
+|---|---|---|
+| Voting | `rgba(26,26,24,0.6)` | FOR dark · AGAINST rose |
+| Lobbying | `#C9A89A` | Conflict rose |
+| News | `#8A8882` | Positive ink · Negative rose |
+
+### Typography
+
+| Family | Weights | Role |
+|---|---|---|
+| **DM Sans** | 200 · 300 · 400 · 500 | Everything — display to caption |
+| **Instrument Serif** | 400 · italic | Hero tagline only |
+
+Display runs at weight 200 with wide letter-spacing (`0.14–0.18em`). Body runs at weight 300. Labels run at weight 500 in uppercase with `0.14–0.16em` tracking. Line-height 1.6 for body; 0.93 for the hero headline.
+
+| Size | Weight | Use |
+|---|---|---|
+| `clamp(56px, 11vw, 140px)` | 400 | Hero wordmark |
+| 15px | 300 | Card titles · input |
+| 13px | 300 | Summary text · chat |
+| 10px | 500 | Labels (uppercase) |
+| 9px | 500 | Micro labels · status tags |
+| 8px | 500–600 | Pill badges · section headers |
+
+### Layout
+
+3-column bento at `1.15fr / 0.85fr` with 1px grid gaps as dividers. Voting spans the full left; Lobbying and News split the right vertically. No border-radius anywhere — sharp corners throughout. No Tailwind — inline styles only, with CSS custom properties for global tokens.
+
+All transitions: 0.15–0.35s ease-out. Framer Motion handles panel slides and expand/collapse. The Three.js landing blob runs at device-adaptive quality.
 
 ---
 
