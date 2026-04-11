@@ -10,7 +10,6 @@
 █   █  ███  █████    █    █   █  █████  █████  █   █
 ```
 
-<img src="./public/parliament.svg" alt="EU Parliament Hemicycle · 705 seats" width="700" /> 
 </div>
 
 
