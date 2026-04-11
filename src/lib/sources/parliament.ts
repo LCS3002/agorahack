@@ -42,7 +42,7 @@ function timeoutSignal(ms: number): AbortSignal {
 }
 
 /** e.g. COD/2021/0106, 2021/0106(COD), 2021-0106, 2021/0106 → 2021-0106 */
-function parseProcedureProcessId(text: string): string | null {
+export function parseProcedureProcessId(text: string): string | null {
   const compact = text.replace(/\u2212/g, '-').trim();
   let m = compact.match(/\b([A-Z]{2,4})\s*\/\s*(\d{4})\s*[\/-]\s*(\d{4})\b/i);
   if (m) return `${m[2]}-${m[3]}`;
@@ -173,6 +173,65 @@ async function tryProcessIdFromPlenaryDocMatch(query: string, entities: string[]
   return null;
 }
 
+/**
+ * When EP v2 is unreachable but HowTheyVote has a main vote for this process_id, still return real tallies.
+ */
+async function parliamentVoteResultFromHowTheyVoteSnapshot(
+  processId: string,
+): Promise<ParliamentVotingFetchResult | null> {
+  const htv = lookupHowTheyVoteMainVote({
+    procedureLabel: '',
+    processId,
+    processType: 'def/ep-procedure-types/COD',
+  });
+  if (!htv) return null;
+
+  const htvDate = htv.timestamp?.slice(0, 10) ?? '';
+  const procTitle = htv.procedureTitle || htv.displayTitle || '';
+  const shortName =
+    htv.reference?.trim() ||
+    (procTitle.length > 48 ? `${procTitle.slice(0, 46)}…` : procTitle) ||
+    htv.displayTitle ||
+    processId;
+
+  const extras = lookupHowTheyVoteVoteExtras(htv.id);
+  const raw = extras?.keyMEPs as Array<KeyMEP & { memberId?: number }> | undefined;
+  const picks =
+    raw
+      ?.filter((k): k is KeyMEP & { memberId: number } => typeof k.memberId === 'number')
+      .map(k => ({
+        memberId: k.memberId,
+        name: k.name,
+        party: k.party,
+        country: k.country,
+        vote: k.vote,
+      })) ?? [];
+  const enr = picks.length ? await enrichKeyMepProfiles(picks, htvDate) : {};
+
+  return {
+    matchedDocuments: [
+      {
+        title: htv.procedureTitle || htv.displayTitle || processId,
+        reference: htv.procedureReference || processId,
+        date: htvDate,
+      },
+    ],
+    recentVotes: [
+      {
+        label: htv.displayTitle || htv.procedureTitle || processId,
+        for: htv.for,
+        against: htv.against,
+        abstain: htv.abstain,
+        date: htvDate,
+        howTheyVoteVoteId: htv.id,
+      },
+    ],
+    queryMatched: true,
+    shortName,
+    ...enr,
+  };
+}
+
 export async function fetchParliamentVotingData(
   query: string,
   entities: string[] = [],
@@ -188,6 +247,8 @@ export async function fetchParliamentVotingData(
     const procJson = await fetchJson(procUrl);
     const procRow = (procJson?.data as Record<string, unknown>[] | undefined)?.[0];
     if (!procRow) {
+      const snap = await parliamentVoteResultFromHowTheyVoteSnapshot(processId);
+      if (snap) return snap;
       return { matchedDocuments: [], recentVotes: [], queryMatched: false };
     }
 
@@ -336,6 +397,11 @@ export async function fetchParliamentVotingData(
       ...enr,
     };
   } catch {
+    const pid = parseProcedureProcessId([query, ...entities].join(' '));
+    if (pid) {
+      const snap = await parliamentVoteResultFromHowTheyVoteSnapshot(pid);
+      if (snap) return snap;
+    }
     return { matchedDocuments: [], recentVotes: [], queryMatched: false };
   }
 }
