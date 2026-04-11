@@ -70,20 +70,22 @@ export function StatusBar({ activeModules, timing, isLoading, dataProvenanceLabe
 
       {/* Provenance — flex middle, never underlap timing */}
       <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-        <span
-          title={dataProvenanceLabel}
-          style={{
-            display: 'block',
-            fontSize: '9px',
-            letterSpacing: '0.06em',
-            color: 'rgba(26,26,24,0.35)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {dataProvenanceLabel ?? 'Mock data — v0.1'}
-        </span>
+        {dataProvenanceLabel ? (
+          <span
+            title={dataProvenanceLabel}
+            style={{
+              display: 'block',
+              fontSize: '9px',
+              letterSpacing: '0.06em',
+              color: 'rgba(26,26,24,0.35)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {dataProvenanceLabel}
+          </span>
+        ) : null}
       </div>
 
       {/* Timing — own flex slot (was absolute; overlapped long provenance) */}

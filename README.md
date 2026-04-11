@@ -236,11 +236,26 @@ Open [http://localhost:3000](http://localhost:3000).
 **Enable the AI agent:**
 
 ```bash
-# .env.local
-ANTHROPIC_API_KEY=sk-ant-...
+# .env.local — OpenAI-compatible API when OPENAI_API_KEY is set (recommended).
+
+# TNG (TUM.ai / AgoraHacks booklet): same as organizer minimal_example.py
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://external.model.tngtech.com/v1/
+TEAM_NAME=your-team-slug
+# If you omit these, TNG URLs default to tngtech/R1T2-Chimera-Speed; api.openai.com defaults to gpt-4o-mini / gpt-4o.
+OPENAI_MODEL_CLASSIFY=tngtech/R1T2-Chimera-Speed
+OPENAI_MODEL_AGENT=tngtech/R1T2-Chimera-Speed
+# Optional — TNG: reasoning in a separate response field (see booklet). Use one:
+# OPENAI_SEPARATE_REASONING=header   # X-Separate-Reasoning: 1
+# OPENAI_SEPARATE_REASONING=body     # JSON body separate_reasoning: true
+
+# Official OpenAI: omit OPENAI_BASE_URL and TEAM_NAME; defaults use gpt-4o-mini / gpt-4o.
+
+# Legacy: if OPENAI_API_KEY is unset, ANTHROPIC_API_KEY is used instead.
+# ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Without a key, the system falls back to pre-written summaries and simulated streaming. All dashboard data is partially live (EP API + GDELT) with fixture fallbacks.
+Without any LLM key, the system falls back to pre-written summaries and simulated streaming. All dashboard data is partially live (EP API + GDELT) with fixture fallbacks.
 
 **Rebuild the Transparency Register snapshot** (optional — full ODP export):
 
