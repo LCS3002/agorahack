@@ -7,6 +7,8 @@ import { fetchGdeltNewsData } from '@/lib/sources/gdelt';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
 import { withSummarySources } from '@/lib/pipeline/summarySources';
+import { createOpenAIClient, resolveActiveLlmProvider } from '@/lib/llm/provider';
+import { runOpenAISummarizeAgent } from '@/lib/llm/openaiSummarizeAgent';
 
 function prepareModuleBase(
   classification: ClassificationResult,
@@ -105,11 +107,11 @@ export async function POST(request: NextRequest) {
     classification: ClassificationResult;
   };
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const provider = resolveActiveLlmProvider();
   const { mockBase, lobbyingSliceMeta } = prepareModuleBase(classification, query);
 
-  // ── No API key: run real data tools directly, return fallback text ────────
-  if (!apiKey) {
+  // ── No LLM key: run real data tools directly, return fallback text ────────
+  if (provider === 'none') {
     const [votingResult, newsResult] = await Promise.allSettled([
       classification.modules.includes('VOTING')
         ? fetchParliamentVotingData(query, classification.entities)
@@ -151,49 +153,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // ── With API key: tool-use agentic loop ───────────────────────────────────
+  // ── With LLM: tool-use agentic loop (OpenAI first, else Anthropic) ─────────
   try {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey });
-
-    const tools = [
-      {
-        name: 'fetch_voting_data',
-        description: 'Fetch EU Parliament plenary documents and recent vote results for a topic.',
-        input_schema: {
-          type: 'object' as const,
-          properties: {
-            query: { type: 'string', description: 'Topic or legislation to search for' },
-            entities: { type: 'array', items: { type: 'string' }, description: 'Specific entities (bill names, MEP names)' },
-          },
-          required: ['query'],
-        },
-      },
-      {
-        name: 'fetch_news_data',
-        description: 'Fetch recent GDELT news headlines with sentiment and lean (LEFT/CENTRE/RIGHT) for a topic.',
-        input_schema: {
-          type: 'object' as const,
-          properties: {
-            query: { type: 'string', description: 'News search query' },
-            entities: { type: 'array', items: { type: 'string' }, description: 'Entities to include in search' },
-          },
-          required: ['query'],
-        },
-      },
-      {
-        name: 'get_entity_background',
-        description: 'Get Wikipedia background on a person, organisation, law, or concept.',
-        input_schema: {
-          type: 'object' as const,
-          properties: {
-            entity: { type: 'string', description: 'Entity to look up' },
-          },
-          required: ['entity'],
-        },
-      },
-    ];
-
     let prefetchedVoting: Record<string, unknown> | null = null;
     if (classification.modules.includes('VOTING')) {
       const pv = await fetchParliamentVotingData(query, classification.entities);
@@ -205,56 +166,110 @@ export async function POST(request: NextRequest) {
         ? `\n\nPre-fetched voting record for this query (authoritative for vote totals and procedure; use in your summary):\n${compactVotingSnapshotForPrompt(prefetchedVoting)}\n`
         : '';
 
-    const messages: Parameters<typeof client.messages.create>[0]['messages'] = [
-      {
-        role: 'user',
-        content: `Query: "${query}"
+    const userAgentContent = `Query: "${query}"
 Modules needed: ${classification.modules.join(', ')}
 Entities detected: ${classification.entities.join(', ') || 'none'}
 Timeframe: ${classification.timeframe}
 
-Fetch the relevant data and write your summary.${prefetchNote}`,
-      },
-    ];
+Fetch the relevant data and write your summary.${prefetchNote}`;
 
     let toolResultsAccumulator: { name: string; result: Record<string, unknown> }[] = [];
     let finalText = '';
 
-    // Agentic loop — max 3 rounds
-    for (let round = 0; round < 3; round++) {
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 900,
+    if (provider === 'openai') {
+      const openai = createOpenAIClient();
+      const model = process.env.OPENAI_MODEL_AGENT?.trim() || 'gpt-4o';
+      const { finalText: ft, toolResults } = await runOpenAISummarizeAgent(openai, {
+        model,
         system: AGENT_SYSTEM,
-        tools,
-        messages,
+        userContent: userAgentContent,
+        executeTool: (name, input) => executeTool(name, input),
       });
+      finalText = ft;
+      toolResultsAccumulator = toolResults;
+    } else {
+      const apiKey = process.env.ANTHROPIC_API_KEY!;
+      const { default: Anthropic } = await import('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey });
 
-      if (response.stop_reason === 'end_turn') {
-        for (const block of response.content) {
-          if (block.type === 'text') finalText = block.text;
-        }
-        break;
-      }
+      const tools = [
+        {
+          name: 'fetch_voting_data',
+          description: 'Fetch EU Parliament plenary documents and recent vote results for a topic.',
+          input_schema: {
+            type: 'object' as const,
+            properties: {
+              query: { type: 'string', description: 'Topic or legislation to search for' },
+              entities: { type: 'array', items: { type: 'string' }, description: 'Specific entities (bill names, MEP names)' },
+            },
+            required: ['query'],
+          },
+        },
+        {
+          name: 'fetch_news_data',
+          description: 'Fetch recent GDELT news headlines with sentiment and lean (LEFT/CENTRE/RIGHT) for a topic.',
+          input_schema: {
+            type: 'object' as const,
+            properties: {
+              query: { type: 'string', description: 'News search query' },
+              entities: { type: 'array', items: { type: 'string' }, description: 'Entities to include in search' },
+            },
+            required: ['query'],
+          },
+        },
+        {
+          name: 'get_entity_background',
+          description: 'Get Wikipedia background on a person, organisation, law, or concept.',
+          input_schema: {
+            type: 'object' as const,
+            properties: {
+              entity: { type: 'string', description: 'Entity to look up' },
+            },
+            required: ['entity'],
+          },
+        },
+      ];
 
-      if (response.stop_reason === 'tool_use') {
-        messages.push({ role: 'assistant', content: response.content });
+      const messages: Parameters<typeof client.messages.create>[0]['messages'] = [
+        { role: 'user', content: userAgentContent },
+      ];
 
-        const toolResultContent: Parameters<typeof client.messages.create>[0]['messages'][number]['content'] = [];
+      // Agentic loop — max 3 rounds
+      for (let round = 0; round < 3; round++) {
+        const response = await client.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 900,
+          system: AGENT_SYSTEM,
+          tools,
+          messages,
+        });
 
-        for (const block of response.content) {
-          if (block.type === 'tool_use') {
-            const result = await executeTool(block.name, block.input as Record<string, unknown>);
-            toolResultsAccumulator.push({ name: block.name, result: result as Record<string, unknown> });
-            toolResultContent.push({
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: JSON.stringify(result),
-            });
+        if (response.stop_reason === 'end_turn') {
+          for (const block of response.content) {
+            if (block.type === 'text') finalText = block.text;
           }
+          break;
         }
 
-        messages.push({ role: 'user', content: toolResultContent });
+        if (response.stop_reason === 'tool_use') {
+          messages.push({ role: 'assistant', content: response.content });
+
+          const toolResultContent: Parameters<typeof client.messages.create>[0]['messages'][number]['content'] = [];
+
+          for (const block of response.content) {
+            if (block.type === 'tool_use') {
+              const result = await executeTool(block.name, block.input as Record<string, unknown>);
+              toolResultsAccumulator.push({ name: block.name, result: result as Record<string, unknown> });
+              toolResultContent.push({
+                type: 'tool_result',
+                tool_use_id: block.id,
+                content: JSON.stringify(result),
+              });
+            }
+          }
+
+          messages.push({ role: 'user', content: toolResultContent });
+        }
       }
     }
 

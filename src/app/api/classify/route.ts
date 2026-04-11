@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { ClassificationResult, ModuleType } from '@/lib/types';
+import { classifyQueryWithOpenAI } from '@/lib/llm/openaiClassify';
+import { resolveActiveLlmProvider } from '@/lib/llm/provider';
 
 // Haiku — cheapest model, ideal for fast JSON routing
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -115,13 +117,19 @@ function fallbackClassify(query: string): ClassificationResult {
 export async function POST(request: NextRequest) {
   const { query } = await request.json();
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const provider = resolveActiveLlmProvider();
 
-  if (!apiKey) {
+  if (provider === 'none') {
     return NextResponse.json(fallbackClassify(query));
   }
 
   try {
+    if (provider === 'openai') {
+      const json = await classifyQueryWithOpenAI(query, SYSTEM_PROMPT);
+      return NextResponse.json(json as ClassificationResult);
+    }
+
+    const apiKey = process.env.ANTHROPIC_API_KEY!;
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey });
 
