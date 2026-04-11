@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, FormEvent } from 'react';
 import Markdown, { type Components } from 'react-markdown';
-import type { HistoryItem, ModuleType, SummarySourceLink } from '@/lib/types';
+import type { HistoryItem, ModuleType, SummarySourceLink, ToolStatusItem } from '@/lib/types';
 
 /** Inline markdown for AI summary body; citations handled separately as [n] tokens. */
 const SUMMARY_MARKDOWN_COMPONENTS: Components = {
@@ -83,6 +83,12 @@ const SUMMARY_MARKDOWN_COMPONENTS: Components = {
   hr: () => <hr style={{ border: 'none', borderTop: '1px solid rgba(26,26,24,0.1)', margin: '0.85em 0' }} />,
 };
 
+const TOOL_LABELS: Record<string, string> = {
+  fetch_voting_data: 'Voting records',
+  fetch_news_data: 'News & sentiment',
+  get_entity_background: 'Background',
+};
+
 interface ChatPanelProps {
   summary: string;
   isLoading: boolean;
@@ -90,6 +96,8 @@ interface ChatPanelProps {
   activeModules: ModuleType[];
   /** From merged module data — enables clickable [n] and Sources list */
   summarySources?: SummarySourceLink[];
+  /** Live agent tool progress — shown while query is in-flight */
+  toolStatus?: ToolStatusItem[];
   onSubmit: (query: string) => void;
   onDemoQuery: (query: string) => void;
   hasQuery: boolean;
@@ -275,6 +283,7 @@ export function ChatPanel({
   isLoading,
   history,
   summarySources,
+  toolStatus = [],
   onSubmit,
   onDemoQuery,
   hasQuery,
@@ -651,15 +660,48 @@ export function ChatPanel({
               </div>
 
               {isLoading && !summary && (
-                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '8px 0' }}>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} style={{
-                      width: '3px', height: '3px', borderRadius: '50%',
-                      background: 'rgba(26,26,24,0.4)', animation: 'pulse 1.2s ease-in-out infinite',
-                      animationDelay: `${i * 0.2}s`,
-                    }} />
-                  ))}
-                  <style>{`@keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }`}</style>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', padding: '4px 0' }}>
+                  {toolStatus.length > 0 ? (
+                    toolStatus.map(t => (
+                      <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {t.phase === 'running' ? (
+                          <div style={{
+                            width: '6px', height: '6px', borderRadius: '50%',
+                            border: '1.5px solid rgba(26,26,24,0.35)',
+                            borderTopColor: 'rgba(26,26,24,0.7)',
+                            animation: 'spin 0.7s linear infinite', flexShrink: 0,
+                          }} />
+                        ) : (
+                          <div style={{
+                            width: '6px', height: '6px', borderRadius: '50%',
+                            background: t.matched ? 'rgba(26,26,24,0.55)' : 'rgba(26,26,24,0.15)',
+                            flexShrink: 0,
+                          }} />
+                        )}
+                        <span style={{
+                          fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase',
+                          color: t.phase === 'running' ? 'rgba(26,26,24,0.55)' : 'rgba(26,26,24,0.28)',
+                          transition: 'color 0.2s',
+                        }}>
+                          {TOOL_LABELS[t.name] ?? t.name}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      {[0, 1, 2].map(i => (
+                        <div key={i} style={{
+                          width: '3px', height: '3px', borderRadius: '50%',
+                          background: 'rgba(26,26,24,0.4)', animation: 'pulse 1.2s ease-in-out infinite',
+                          animationDelay: `${i * 0.2}s`,
+                        }} />
+                      ))}
+                    </div>
+                  )}
+                  <style>{`
+                    @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                  `}</style>
                 </div>
               )}
 
@@ -687,7 +729,7 @@ export function ChatPanel({
         </form>
         {isLoading && (
           <div style={{ marginTop: '6px', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)' }}>
-            Querying modules…
+            {summary ? 'Generating summary…' : toolStatus.some(t => t.phase === 'running') ? 'Fetching data…' : 'Querying…'}
           </div>
         )}
       </div>

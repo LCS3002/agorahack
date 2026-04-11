@@ -65,7 +65,13 @@ export async function runOpenAISummarizeAgent(
     model: string;
     system: string;
     userContent: string;
+    /** Prior conversation turns prepended for multi-turn context (newest last). */
+    priorMessages?: ChatCompletionMessageParam[];
     executeTool: (name: string, input: Record<string, unknown>) => Promise<unknown>;
+    /** Called just before each tool execution — use to emit progress events. */
+    onToolStart?: (name: string) => void;
+    /** Called just after each tool execution. `matched` is true when the tool returned useful data. */
+    onToolDone?: (name: string, matched: boolean) => void;
     maxRounds?: number;
     maxTokens?: number;
   },
@@ -73,6 +79,7 @@ export async function runOpenAISummarizeAgent(
   const tools = aletheiaTools();
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: options.system },
+    ...(options.priorMessages ?? []),
     { role: 'user', content: options.userContent },
   ];
   const toolResults: { name: string; result: Record<string, unknown> }[] = [];
@@ -111,7 +118,10 @@ export async function runOpenAISummarizeAgent(
       } catch {
         input = {};
       }
+      options.onToolStart?.(fn.name);
       const result = await options.executeTool(fn.name, input);
+      const matched = (result as Record<string, unknown>)?.queryMatched !== false;
+      options.onToolDone?.(fn.name, typeof matched === 'boolean' ? matched : true);
       toolResults.push({ name: fn.name, result: result as Record<string, unknown> });
       messages.push({
         role: 'tool',

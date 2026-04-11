@@ -15,6 +15,7 @@ import type {
   ModuleData,
   ModuleType,
   HistoryItem,
+  ToolStatusItem,
 } from '@/lib/types';
 import { selectMockData } from '@/lib/mockDataSelector';
 import { formatModuleDataProvenance } from '@/lib/formatProvenance';
@@ -703,10 +704,12 @@ export default function Page() {
   const [moduleData,     setModuleData]     = useState<ModuleData>({});
   const [moduleContext,  setModuleContext]  = useState<Partial<Record<ModuleType, string>>>({});
   const [timing,         setTiming]         = useState<number | null>(null);
+  const [toolStatus,     setToolStatus]     = useState<ToolStatusItem[]>([]);
   const [history,        setHistory]        = useState<HistoryItem[]>([]);
   const [hasQuery,       setHasQuery]       = useState(false);
   const [showApp,        setShowApp]        = useState(false);
   const [expandedModule, setExpandedModule] = useState<ModuleType | null>(null);
+  const [mockBannerCollapsed, setMockBannerCollapsed] = useState(false);
 
   // ── localStorage persistence ──────────────────────────────────────────────
   useEffect(() => {
@@ -734,6 +737,7 @@ export default function Page() {
     setTiming(item.timing);
     setHasQuery(true);
     setIsLoading(false);
+    setToolStatus([]);
     setExpandedModule(null);
     setShowApp(true);
   }, []);
@@ -756,9 +760,11 @@ export default function Page() {
     setModuleData({});
     setModuleContext({});
     setTiming(null);
+    setToolStatus([]);
+    setMockBannerCollapsed(false);
 
     let classification: ClassificationResult;
-    let finalData: ModuleData;
+    let capturedModuleData: ModuleData = {};
 
     try {
       const classRes = await fetch('/api/classify', {
@@ -770,25 +776,22 @@ export default function Page() {
 
       setActiveModules(classification.modules);
       setModuleContext(classification.moduleContext ?? {});
-      finalData = selectMockData(classification, query);
-      setModuleData(finalData); // show mock panels immediately while agent fetches real data
+      // Show mock data immediately while agent fetches real data
+      const mockData = selectMockData(classification, query);
+      capturedModuleData = mockData;
+      setModuleData(mockData);
 
-      // Agent fetches real data (EP API + GDELT) and writes the summary
+      // Pass last 3 history items for multi-turn context (newest first)
+      const conversationHistory = history.slice(0, 3).map(h => ({
+        query: h.query,
+        summary: h.summary,
+      }));
+
       const sumRes = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, classification }),
+        body: JSON.stringify({ query, classification, conversationHistory }),
       });
-
-      // Real module data comes back in a header — update panels before streaming text
-      const rawModuleData = sumRes.headers.get('X-Module-Data');
-      if (rawModuleData) {
-        try {
-          const realData: ModuleData = JSON.parse(atob(rawModuleData));
-          finalData = realData; // capture for history
-          setModuleData(realData);
-        } catch { /* keep mock if header is malformed */ }
-      }
 
       if (!sumRes.body) {
         const text = await sumRes.text();
@@ -799,28 +802,68 @@ export default function Page() {
         setHistory(prev => [{
           id: crypto.randomUUID(), query, summary: text,
           modules: classification.modules, timestamp: Date.now(),
-          timing: elapsed, moduleData: finalData, classification,
+          timing: elapsed, moduleData: capturedModuleData, classification,
         }, ...prev]);
         return;
       }
 
+      // ── Parse event stream ─────────────────────────────────────────────────
+      // Protocol lines: §T:start/done:toolName[:1|0], §D:base64, §X:base64text
       const reader  = sumRes.body.getReader();
       const decoder = new TextDecoder();
-      let   full    = '';
+      let lineBuffer = '';
+      let finalSummary = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        full += decoder.decode(value, { stream: true });
-        setSummary(full);
+        lineBuffer += decoder.decode(value, { stream: true });
+
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (line.startsWith('§T:')) {
+            // Tool status event
+            const parts = line.slice(3).split(':');
+            const phase = parts[0];   // 'start' | 'done'
+            const name  = parts[1];   // 'fetch_voting_data' etc.
+            const matched = parts[2] === '1';
+            setToolStatus(prev => {
+              if (phase === 'start') {
+                return [...prev.filter(t => t.name !== name), { name, phase: 'running' }];
+              }
+              return prev.map(t => t.name === name ? { ...t, phase: 'done', matched } : t);
+            });
+          } else if (line.startsWith('§D:')) {
+            // Module data — update dashboard immediately
+            try {
+              const realData: ModuleData = JSON.parse(atob(line.slice(3)));
+              capturedModuleData = realData;
+              setModuleData(realData);
+            } catch { /* keep mock on parse failure */ }
+          } else if (line.startsWith('§X:')) {
+            // Full summary text — animate word-by-word client side
+            try {
+              const text = atob(line.slice(3));
+              finalSummary = text;
+              const words = text.split(' ');
+              for (let i = 0; i < words.length; i++) {
+                await new Promise<void>(r => setTimeout(r, 22));
+                setSummary(prev => prev ? prev + ' ' + words[i] : words[i]);
+              }
+            } catch { /* ignore decode failure */ }
+          }
+        }
       }
 
       const elapsed = Date.now() - t0;
       setTiming(elapsed);
       setIsLoading(false);
       setHistory(prev => [{
-        id: crypto.randomUUID(), query, summary: full,
+        id: crypto.randomUUID(), query, summary: finalSummary,
         modules: classification.modules, timestamp: Date.now(),
-        timing: elapsed, moduleData: finalData, classification,
+        timing: elapsed, moduleData: capturedModuleData, classification,
       }, ...prev]);
 
     } catch (err) {
@@ -829,7 +872,7 @@ export default function Page() {
       setIsLoading(false);
       setTiming(Date.now() - t0);
     }
-  }, [isLoading]);
+  }, [isLoading, history]);
 
   return (
     <div style={{ height: '100vh', overflow: 'hidden', background: '#F0EDE8', position: 'relative' }}>
@@ -862,6 +905,7 @@ export default function Page() {
                   history={history}
                   activeModules={activeModules}
                   summarySources={moduleData.summarySources}
+                  toolStatus={toolStatus}
                   onSubmit={runQuery}
                   onDemoQuery={runQuery}
                   hasQuery={hasQuery}
@@ -898,6 +942,60 @@ export default function Page() {
                 </AnimatePresence>
               </div>
             </div>
+
+            {/* ── Mock data banner ── */}
+            {(() => {
+              const meta = moduleData.meta;
+              if (!meta || !hasQuery) return null;
+              const mockModules = (
+                ['voting', 'lobbying', 'news'] as const
+              ).filter(k => meta[k]?.source === 'mock').map(k => k.toUpperCase());
+              if (mockModules.length === 0) return null;
+              return (
+                <div style={{
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: mockBannerCollapsed ? '0 16px' : '6px 16px',
+                  height: mockBannerCollapsed ? '20px' : 'auto',
+                  background: 'rgba(26,26,24,0.04)',
+                  borderTop: '1px solid rgba(26,26,24,0.08)',
+                  overflow: 'hidden',
+                  transition: 'height 0.18s ease, padding 0.18s ease',
+                }}>
+                  <div style={{
+                    width: '5px', height: '5px', background: '#C9A89A',
+                    flexShrink: 0, opacity: mockBannerCollapsed ? 0 : 1,
+                    transition: 'opacity 0.15s',
+                  }} />
+                  {!mockBannerCollapsed && (
+                    <span style={{
+                      fontSize: '9px', fontWeight: 400, letterSpacing: '0.09em',
+                      color: 'rgba(26,26,24,0.45)', flex: 1,
+                    }}>
+                      <span style={{ fontWeight: 600, color: 'rgba(26,26,24,0.55)' }}>
+                        {mockModules.join(', ')}
+                      </span>
+                      {' '}using scenario fixture — no live API match for this query
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMockBannerCollapsed(v => !v)}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: '2px 4px', fontFamily: 'inherit',
+                      fontSize: '8px', fontWeight: 500, letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(26,26,24,0.35)',
+                    }}
+                  >
+                    {mockBannerCollapsed ? '▲ mock data' : '▼ hide'}
+                  </button>
+                </div>
+              );
+            })()}
 
             <StatusBar
               activeModules={activeModules}

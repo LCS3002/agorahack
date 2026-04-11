@@ -176,6 +176,13 @@ export interface ModuleData {
   summarySources?: SummarySourceLink[];
 }
 
+// ── Agent tool status (shown while query is in-flight) ───────────────────────
+export interface ToolStatusItem {
+  name: string;
+  phase: 'running' | 'done';
+  matched?: boolean;
+}
+
 // ── Query history ─────────────────────────────────────────────────────────────
 export interface HistoryItem {
   id: string;
