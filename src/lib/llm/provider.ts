@@ -2,19 +2,27 @@ import OpenAI from 'openai';
 
 export type ActiveLlmProvider = 'openai' | 'anthropic' | 'none';
 
+/** TNG hackathon gateway only exposes a fixed model list — not OpenAI IDs like gpt-4o. */
+export function isTngOpenAiBaseUrl(): boolean {
+  const base = process.env.OPENAI_BASE_URL?.trim().toLowerCase() ?? '';
+  return base.includes('tngtech.com');
+}
+
 /**
  * TNG: put model reasoning in a separate response field (not mixed into `message.content`).
  * - `header` — send `X-Separate-Reasoning: 1` on every request (organizer example 2).
- * - `body` — add JSON `{ separate_reasoning: true }` to the chat completion body (organizer example 1 / `extra_body`).
- * - unset / `off` / `0` / `false` — default API behavior.
+ * - `body` — add JSON `{ separate_reasoning: true }` to the chat completion JSON body (organizer example 1 / `extra_body`).
+ * - unset — if `OPENAI_BASE_URL` is TNG (`tngtech.com`), defaults to `header`; otherwise off.
+ * - `off` / `0` / `false` — never send separation (overrides TNG default).
  */
 export type OpenAISeparateReasoningMode = 'off' | 'header' | 'body';
 
 export function getOpenAISeparateReasoningMode(): OpenAISeparateReasoningMode {
   const raw = (process.env.OPENAI_SEPARATE_REASONING?.trim().toLowerCase() ?? '');
-  if (raw === '' || raw === 'off' || raw === '0' || raw === 'false') return 'off';
+  if (raw === 'off' || raw === '0' || raw === 'false') return 'off';
   if (raw === 'body' || raw === 'extra_body') return 'body';
   if (raw === 'header' || raw === '1' || raw === 'true') return 'header';
+  if (raw === '' && isTngOpenAiBaseUrl()) return 'header';
   return 'off';
 }
 
@@ -22,12 +30,6 @@ export function getOpenAISeparateReasoningMode(): OpenAISeparateReasoningMode {
 export function withOpenAISeparateReasoningBody(body: Record<string, unknown>): Record<string, unknown> {
   if (getOpenAISeparateReasoningMode() !== 'body') return body;
   return { ...body, separate_reasoning: true };
-}
-
-/** TNG hackathon gateway only exposes a fixed model list — not OpenAI IDs like gpt-4o. */
-export function isTngOpenAiBaseUrl(): boolean {
-  const base = process.env.OPENAI_BASE_URL?.trim().toLowerCase() ?? '';
-  return base.includes('tngtech.com');
 }
 
 const DEFAULT_TNG_CHAT_MODEL = 'tngtech/R1T2-Chimera-Speed';

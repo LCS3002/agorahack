@@ -7,6 +7,7 @@ import { fetchGdeltNewsData } from '@/lib/sources/gdelt';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
 import { withSummarySources } from '@/lib/pipeline/summarySources';
+import { sanitizeAgentSummaryForUser } from '@/lib/pipeline/sanitizeAgentSummary';
 import { createOpenAIClient, defaultOpenAIAgentModel, resolveActiveLlmProvider } from '@/lib/llm/provider';
 import { runOpenAISummarizeAgent } from '@/lib/llm/openaiSummarizeAgent';
 
@@ -81,6 +82,7 @@ const AGENT_SYSTEM = `You are Aletheia. Use tools silently, then reply with ONE 
 CRITICAL — OUTPUT MUST NOT CONTAIN:
 - Any chain-of-thought, planning, or self-dialogue (no "First,", "Next,", "Wait,", "Hmm,", "I should", "I'll call", "Putting it together", "This is a gap").
 - Any mention of tools, APIs, "pre-fetched", "the user", "modules", or what you will/won't call.
+- Any literal tool-call syntax: do not print <tool_call> tags or JSON that mimics calling fetch_* functions — the platform invokes tools; your visible reply is **only** Markdown sections + SOURCES.
 - If you reason internally, none of that may appear in the message. Only the four sections below + SOURCES.
 
 TOOL USE (silent — never describe in the answer):
@@ -322,6 +324,12 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
     let moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator, { lobbyingSliceMeta });
     moduleData = withSummarySources(moduleData, toolResultsAccumulator);
     if (!finalText) finalText = getFallbackSummary(query, moduleData);
+    else {
+      finalText = sanitizeAgentSummaryForUser(finalText);
+      if (finalText.replace(/\s/g, '').length < 60) {
+        finalText = getFallbackSummary(query, moduleData);
+      }
+    }
 
     const moduleDataB64 = Buffer.from(JSON.stringify(moduleData)).toString('base64');
 
