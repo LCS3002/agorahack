@@ -108,19 +108,22 @@ function mapToLobbyingResult(
   scored: ScoredRegisterOrg[],
 ): LobbyingResult {
   const top = scored.slice(0, 5);
-  const organizations = top.map((s, i) => {
-    const midEur = (s.record.value_min_eur + s.record.value_max_eur) / 2;
-    const spendM = midEur / 1_000_000;
-    const meetings = s.record.persons_involved ?? Math.max(2, Math.round(spendM * 5));
-    const sector = s.record.category.length > 28 ? `${s.record.category.slice(0, 26)}…` : s.record.category;
-    return {
-      rank: i + 1,
-      name: s.record.organisation_name,
-      spend: Math.round(spendM * 100) / 100,
-      meetings,
-      sector,
-    };
-  });
+  const organizations = top
+    .map((s) => {
+      const midEur = (s.record.value_min_eur + s.record.value_max_eur) / 2;
+      const spendM = midEur / 1_000_000;
+      const meetings = s.record.persons_involved ?? Math.max(2, Math.round(spendM * 5));
+      const sector = s.record.category.length > 28 ? `${s.record.category.slice(0, 26)}…` : s.record.category;
+      return {
+        rank: 0,
+        name: s.record.organisation_name,
+        spend: Math.round(spendM * 100) / 100,
+        meetings,
+        sector,
+      };
+    })
+    .sort((a, b) => b.spend - a.spend || b.meetings - a.meetings)
+    .map((o, i) => ({ ...o, rank: i + 1 }));
 
   const totalDeclaredSpend =
     Math.round(

@@ -53,6 +53,12 @@ Rules for the summary:
 - 2-4 sources maximum, only cite what you actually reference`;
 
 // ── Fallback (no API key) ──────────────────────────────────────────────────────
+function topLobbyingOrgBySpend(md: ModuleData) {
+  const orgs = md.lobbying?.organizations;
+  if (!orgs?.length) return null;
+  return orgs.reduce((a, b) => (a.spend >= b.spend ? a : b));
+}
+
 function getFallbackSummary(query: string, md: ModuleData): string {
   if (md.lobbying?.conflictFlags?.length && md.voting) {
     const flag = md.lobbying.conflictFlags[0];
@@ -60,9 +66,11 @@ function getFallbackSummary(query: string, md: ModuleData): string {
   }
   if (md.voting) {
     const v = md.voting;
-    return `The ${v.lawName} passed with ${v.votes.for} votes in favour against ${v.votes.against} opposed — a margin that reflects political fracture, particularly within the EPP, where the vote split along national and agricultural interest lines [1].${md.lobbying ? ` Declared lobbying spend on this file reached €${md.lobbying.totalDeclaredSpend}M, with ${md.lobbying.organizations[0]?.name} leading at €${md.lobbying.organizations[0]?.spend}M [2].` : ''} The result is formally law, but the political coalition that produced it remains fragile [1].`;
+    const lead = topLobbyingOrgBySpend(md);
+    return `The ${v.lawName} passed with ${v.votes.for} votes in favour against ${v.votes.against} opposed — a margin that reflects political fracture, particularly within the EPP, where the vote split along national and agricultural interest lines [1].${md.lobbying && lead ? ` Declared lobbying spend among surfaced registrants totals €${md.lobbying.totalDeclaredSpend}M, with ${lead.name} highest at €${lead.spend}M [2].` : ''} The result is formally law, but the political coalition that produced it remains fragile [1].`;
   }
-  return `The query "${query}" touches on active EU legislative and influence dynamics. Available data indicates significant lobbying activity and a contested political record [1]. The interests at play span industrial and civil society actors, with the balance of formal meetings and declared expenditure pointing toward ${md.lobbying?.organizations[0]?.sector ?? 'industry'} having disproportionate access to key decision-makers [2].`;
+  const lead2 = topLobbyingOrgBySpend(md);
+  return `The query "${query}" touches on active EU legislative and influence dynamics. Available data indicates significant lobbying activity and a contested political record [1]. The interests at play span industrial and civil society actors, with the balance of formal meetings and declared expenditure pointing toward ${lead2?.sector ?? md.lobbying?.organizations[0]?.sector ?? 'industry'} having disproportionate access to key decision-makers [2].`;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
