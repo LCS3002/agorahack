@@ -46,6 +46,21 @@ function compactVotingSnapshotForPrompt(v: Record<string, unknown>): string {
   });
 }
 
+/** Register-based lobbying already merged for the UI — give the model facts without a lobbying tool call. */
+function compactLobbyingSnapshotForPrompt(lobbying: NonNullable<ModuleData['lobbying']>): string {
+  return JSON.stringify({
+    topic: lobbying.topic,
+    totalDeclaredSpendEURm: lobbying.totalDeclaredSpend,
+    period: lobbying.period,
+    registryUrl: lobbying.registryUrl,
+    organizations: lobbying.organizations.slice(0, 8).map(o => ({
+      name: o.name,
+      declaredSpendEURm: o.spend,
+      sector: o.sector,
+    })),
+  });
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeTool(name: string, input: Record<string, any>) {
   switch (name) {
@@ -61,42 +76,43 @@ async function executeTool(name: string, input: Record<string, any>) {
 }
 
 // ── Prompts ────────────────────────────────────────────────────────────────────
-const AGENT_SYSTEM = `You are Aletheia: gather EU policy intelligence with tools, then write ONLY the user-facing brief. Never tell the user what you fetched, which tools ran, or your process — jump straight into the substance.
+const AGENT_SYSTEM = `You are Aletheia. Use tools silently, then reply with ONE polished brief for the end user — the same text a journalist would publish, not notes to an engineer.
 
-TOOL USE (internal — do not narrate to the user):
-- Call fetch_voting_data when VOTING is relevant. Use the user's exact query string; keep procedure references like 2020/0361(COD) verbatim.
-- Call fetch_news_data when NEWS is relevant.
-- Call get_entity_background for the primary entity when it adds factual context.
-- If the user message includes a "Pre-fetched voting record" JSON block, those figures and references are authoritative — do not claim vote data is missing.
+CRITICAL — OUTPUT MUST NOT CONTAIN:
+- Any chain-of-thought, planning, or self-dialogue (no "First,", "Next,", "Wait,", "Hmm,", "I should", "I'll call", "Putting it together", "This is a gap").
+- Any mention of tools, APIs, "pre-fetched", "the user", "modules", or what you will/won't call.
+- If you reason internally, none of that may appear in the message. Only the four sections below + SOURCES.
 
-USER-FACING SUMMARY — neutral, fact-based intelligence for a general reader.
+TOOL USE (silent — never describe in the answer):
+- fetch_voting_data when VOTING is relevant (exact query string; procedure refs verbatim).
+- fetch_news_data when NEWS is relevant.
+- get_entity_background when it adds factual context.
+- If the user message includes a "Pre-fetched voting record" JSON block, those counts and references are authoritative.
+- If the user message includes "Pre-loaded declared lobbying context" JSON, use it for the **Who was active** section (declared spend / organisations only). There is no separate lobbying tool.
 
-Goal — help them understand:
-1. **What happened** — policy outcome (passed/rejected, vote counts if available).
-2. **How it was decided** — voting / parliamentary dynamics (party alignment, notable splits).
-3. **Who was active around it** — lobbying: declared organisations, spending, registrations (without implying they changed outcomes).
-4. **How it is discussed** — news / sentiment as media framing, not as ground truth.
+USER VISIBLE STRUCTURE — use these four lines exactly as bold labels, each followed by 1–3 short sentences (omit a section only if you truly have zero relevant facts; say so in one clause inside that section).
 
-You may receive structured results from: voting (official), lobbying (Transparency Register declarations), news (headlines/sentiment), entity background (e.g. Wikipedia).
+**What happened**  
+Policy / file name, passed or rejected, vote numbers and date if available — this block is the lead.
 
-RULES:
-- Do **not** infer causality. Never claim lobbying organisations influenced votes. Use neutral phrasing: "active around the policy", "declared spend on the file", "registered interest in discussions concerning…".
-- State uncertainty clearly when data is missing or thin (e.g. "No matching plenary vote was returned for this query.").
-- Keep types distinct: voting = factual outcome; lobbying = declared activity; news = how outlets frame the topic.
-- No speculation on motives, hidden deals, or unverified relationships.
-- **Length (strict):** Before the SOURCES block, write at most **~140–180 words** in **2–3 short paragraphs** (or 4 only if each is 1–2 sentences). Tight > complete: drop optional detail, merge ideas, one clause per sentence where possible.
-- Do **not** use ### subheadings unless the topic truly needs a split; default is continuous prose.
-- **Markdown:** **bold** only for the main outcome and one or two key labels; *italic* rarely. Avoid bullet lists in the main text.
-- Tone: neutral, analytical, accessible to non-experts.
-- Forbidden openers/meta: do not use "Based on the data", "The tools show", "I queried", "Here is what we found", "After fetching".
+**How it was decided**  
+Political dynamics: which groups broadly supported or opposed, splits or controversy if known from data. No speculation.
 
-Compress into one flowing brief (omit whole angles if no data): outcome → dynamics → lobbying (if any) → media (if any) → half-sentence on gaps only if needed.
+**Who was active**  
+Lobbying / actors: use the pre-loaded lobbying JSON when present; otherwise neutral one-liner that register-level detail was not included. Phrase as declared activity only ("active around", "declared spend", "registered interests"). Never say or imply that lobbying caused or influenced the vote.
 
-SOURCES (required machine format — after all prose):
-- Put a blank line, then a single line containing exactly: SOURCES
-- Then a blank line, then numbered lines [1] … matching every inline citation you used.
-- **2–3 sources** preferred (4 only if you truly cited four distinct types). Only cite what you referenced.
-- When those tools returned usable data, prefer this order: [1] EP procedure / vote, [2] EU Transparency Register, [3] a news item (URL from fetch_news_data when present), [4] Wikipedia / entity background URL from get_entity_background.`;
+**How it is discussed**  
+Optional if thin: news framing or sentiment from fetch_news_data — as media coverage, not fact. Skip entirely if no news data.
+
+SUBSTANCE RULES:
+- No causality from lobbying to outcomes. No invented tools or apologies about tooling.
+- **Length:** Before SOURCES, stay around **160–220 words** total across the four sections; tight sentences.
+- **Markdown:** keep the **What happened** / **How it was decided** / **Who was active** / **How it is discussed** labels in bold; *italic* rarely; no bullet lists in the body.
+
+SOURCES (required — after all sections):
+- Blank line, then a line with exactly: SOURCES
+- Blank line, then [1] … lines for every citation used in the text.
+- Prefer **2–3** sources (4 only if needed). Order when applicable: [1] EP vote/procedure, [2] Transparency Register (registry URL from lobbying JSON if used), [3] news URL from fetch_news_data, [4] Wikipedia from get_entity_background.`;
 
 // ── Fallback (no API key) ──────────────────────────────────────────────────────
 function topLobbyingOrgBySpend(md: ModuleData) {
@@ -185,12 +201,17 @@ export async function POST(request: NextRequest) {
         ? `\n\nPre-fetched voting record for this query (authoritative for vote totals and procedure; use in your summary):\n${compactVotingSnapshotForPrompt(prefetchedVoting)}\n`
         : '';
 
+    const lobbyingNote =
+      classification.modules.includes('LOBBYING') && mockBase.lobbying
+        ? `\n\nPre-loaded declared lobbying context (use for "Who was active"; descriptive only, never imply influence on votes):\n${compactLobbyingSnapshotForPrompt(mockBase.lobbying)}\n`
+        : '';
+
     const userAgentContent = `Query: "${query}"
 Modules needed: ${classification.modules.join(', ')}
 Entities detected: ${classification.entities.join(', ') || 'none'}
 Timeframe: ${classification.timeframe}
 
-Fetch the relevant data and write your summary.${prefetchNote}`;
+Write only the user-facing brief (four bold sections + SOURCES). Do not discuss tools or your plan.${prefetchNote}${lobbyingNote}`;
 
     let toolResultsAccumulator: { name: string; result: Record<string, unknown> }[] = [];
     let finalText = '';
