@@ -26,6 +26,7 @@ export function Header({ onLogoClick }: { onLogoClick?: () => void }) {
           alt="Aletheia"
           style={{ height: '36px', width: 'auto', display: 'block', objectFit: 'contain' }}
         />
+        <div style={{ width: 7, height: 7, background: '#C9A89A', flexShrink: 0 }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
           <span
             style={{

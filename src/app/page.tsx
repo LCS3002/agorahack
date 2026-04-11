@@ -70,6 +70,16 @@ function CreamLandingPage({
           style={{ height: '96px', width: 'auto', marginBottom: '20px', objectFit: 'contain' }}
         />
         <div style={{
+          fontSize: '9px',
+          fontWeight: 500,
+          letterSpacing: '0.28em',
+          textTransform: 'uppercase',
+          color: 'rgba(26,26,24,0.28)',
+          marginBottom: '20px',
+        }}>
+          A (01)
+        </div>
+        <div style={{
           fontSize: '44px',
           fontWeight: 200,
           letterSpacing: '0.14em',
@@ -278,6 +288,7 @@ function LandingPage({
         {/* Logo — matches Header.tsx exactly */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/logo_a.png" alt="Aletheia" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+          <div style={{ width: 7, height: 7, background: '#C9A89A' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span style={{ fontSize: 20, fontWeight: 200, letterSpacing: '0.18em', color: '#1A1A18', lineHeight: 1 }}>
               ALETHEIA
