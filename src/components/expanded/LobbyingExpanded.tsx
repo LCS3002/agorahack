@@ -176,7 +176,7 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
             {signalN > 0 && (
               <div style={{ marginBottom: '18px' }}>
                 <div style={{ fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.38)', marginBottom: '10px' }}>
-                  Heuristic signals (not proven conflicts)
+                  Activity signals
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {(data.partialConflicts ?? []).map((s) => (
