@@ -2,7 +2,7 @@ import type { ModuleSliceMeta, PartialLobbyingConflict } from '@/lib/types';
 import type { LobbyingResult } from '@/lib/types';
 import type { TransparencyRegisterRecord, ScoredRegisterOrg } from './types';
 import { extractSearchTerms } from './keywords';
-import registerSnapshot from '@/data/transparency-register-sample.json';
+import { getTransparencyRegisterRecords, getTransparencyRegisterSource } from './loadRegister';
 
 const REGISTRY_INFO_URL = 'https://ec.europa.eu/info/relations-with-citizens/transparency-register_en';
 
@@ -13,7 +13,13 @@ function isHighSpendMid(r: TransparencyRegisterRecord): boolean {
 
 function isCommercialCategory(cat: string): boolean {
   const c = cat.toLowerCase();
-  return c.includes('company') || c.includes('business association');
+  return (
+    c.includes('company') ||
+    c.includes('business association') ||
+    c.includes('consultancy') ||
+    c.includes('law firms') ||
+    c.includes('self-employed consultant')
+  );
 }
 
 function scoreRecord(record: TransparencyRegisterRecord, terms: string[]): { score: number; rationale: string } {
@@ -149,7 +155,8 @@ export function buildLobbyingFromRegisterSnapshot(
   fixture: LobbyingResult,
 ): RegisterLobbyingBuild {
   const terms = extractSearchTerms(query, entities);
-  const records = registerSnapshot as TransparencyRegisterRecord[];
+  const records = getTransparencyRegisterRecords();
+  const source = getTransparencyRegisterSource();
 
   const scored: ScoredRegisterOrg[] = records
     .map(record => {
@@ -179,6 +186,11 @@ export function buildLobbyingFromRegisterSnapshot(
   const partialConflicts = buildPartialConflicts(scored.slice(0, 5), terms);
 
   const freshness = new Date().toISOString().slice(0, 10);
+  const n = records.length;
+  const label =
+    source === 'full'
+      ? `EU Transparency Register (ODP, ${n.toLocaleString()} orgs) · keyword match · ${freshness}`
+      : `Bundled sample (${n} orgs) · keyword match · add transparency-register.json`;
 
   return {
     lobbying: { ...lobbying, partialConflicts },
@@ -186,7 +198,7 @@ export function buildLobbyingFromRegisterSnapshot(
     sliceMeta: {
       source: 'register',
       partial: true,
-      label: `Snapshot keyword match · ${freshness} · replace JSON with official export`,
+      label,
     },
   };
 }
