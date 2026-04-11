@@ -1,7 +1,87 @@
 'use client';
 
 import { useRef, useEffect, useState, FormEvent } from 'react';
+import Markdown, { type Components } from 'react-markdown';
 import type { HistoryItem, ModuleType, SummarySourceLink } from '@/lib/types';
+
+/** Inline markdown for AI summary body; citations handled separately as [n] tokens. */
+const SUMMARY_MARKDOWN_COMPONENTS: Components = {
+  p: ({ children }) => (
+    <p style={{
+      margin: '0 0 0.6em 0',
+      fontSize: 'inherit',
+      fontWeight: 300,
+      lineHeight: 1.85,
+      color: 'inherit',
+      letterSpacing: '0.01em',
+    }}>
+      {children}
+    </p>
+  ),
+  strong: ({ children }) => <strong style={{ fontWeight: 600, color: '#1A1A18' }}>{children}</strong>,
+  em: ({ children }) => <em style={{ fontStyle: 'italic' }}>{children}</em>,
+  ul: ({ children }) => <ul style={{ margin: '0 0 0.6em 0', paddingLeft: '1.25em' }}>{children}</ul>,
+  ol: ({ children }) => <ol style={{ margin: '0 0 0.6em 0', paddingLeft: '1.25em' }}>{children}</ol>,
+  li: ({ children }) => <li style={{ marginBottom: '0.35em' }}>{children}</li>,
+  h1: ({ children }) => (
+    <h1 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 0.45em 0', letterSpacing: '0.02em', color: '#1A1A18' }}>{children}</h1>
+  ),
+  h2: ({ children }) => (
+    <h2 style={{ fontSize: '14px', fontWeight: 600, margin: '0.65em 0 0.35em 0', letterSpacing: '0.02em', color: '#1A1A18' }}>{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 style={{ fontSize: '13px', fontWeight: 600, margin: '0.55em 0 0.3em 0', color: 'rgba(26,26,24,0.9)' }}>{children}</h3>
+  ),
+  code: ({ children }) => (
+    <code style={{
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+      fontSize: '0.92em',
+      background: 'rgba(26,26,24,0.06)',
+      padding: '0.12em 0.35em',
+      borderRadius: 2,
+    }}>
+      {children}
+    </code>
+  ),
+  pre: ({ children }) => (
+    <pre style={{
+      margin: '0 0 0.6em 0',
+      padding: '10px 12px',
+      background: 'rgba(26,26,24,0.05)',
+      overflow: 'auto',
+      fontSize: '12px',
+      lineHeight: 1.5,
+    }}>
+      {children}
+    </pre>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote style={{
+      margin: '0 0 0.6em 0',
+      paddingLeft: '12px',
+      borderLeft: '2px solid rgba(201,168,154,0.5)',
+      color: 'rgba(26,26,24,0.68)',
+    }}>
+      {children}
+    </blockquote>
+  ),
+  a: ({ href, children }) => (
+    <a
+      href={href ?? '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: '#C9A89A',
+        textDecoration: 'underline',
+        textUnderlineOffset: '2px',
+        textDecorationColor: 'rgba(201,168,154,0.45)',
+      }}
+    >
+      {children}
+    </a>
+  ),
+  hr: () => <hr style={{ border: 'none', borderTop: '1px solid rgba(26,26,24,0.1)', margin: '0.85em 0' }} />,
+};
 
 interface ChatPanelProps {
   summary: string;
@@ -81,7 +161,12 @@ function SummaryWithCitations({
         }
         return <span key={i}>{sup}</span>;
       }
-      return <span key={i}>{part}</span>;
+      if (part.trim() === '') return null;
+      return (
+        <Markdown key={i} components={SUMMARY_MARKDOWN_COMPONENTS} skipHtml>
+          {part}
+        </Markdown>
+      );
     });
   }
 
