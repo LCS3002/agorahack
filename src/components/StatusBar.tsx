@@ -4,6 +4,8 @@ interface StatusBarProps {
   activeModules: ModuleType[];
   timing: number | null;
   isLoading: boolean;
+  /** Explains live vs fixture per module (from `ModuleData.meta`) */
+  dataProvenanceLabel?: string;
 }
 
 const MODULE_LABELS: Record<ModuleType, string> = {
@@ -14,7 +16,7 @@ const MODULE_LABELS: Record<ModuleType, string> = {
 
 const ALL_MODULES: ModuleType[] = ['VOTING', 'LOBBYING', 'NEWS'];
 
-export function StatusBar({ activeModules, timing, isLoading }: StatusBarProps) {
+export function StatusBar({ activeModules, timing, isLoading, dataProvenanceLabel }: StatusBarProps) {
   return (
     <div
       style={{
@@ -81,8 +83,19 @@ export function StatusBar({ activeModules, timing, isLoading }: StatusBarProps) 
 
       {/* Right */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <span style={{ fontSize: '9px', letterSpacing: '0.1em', color: 'rgba(26,26,24,0.3)', textTransform: 'uppercase' }}>
-          Mock data — v0.1
+        <span
+          title={dataProvenanceLabel}
+          style={{
+            fontSize: '9px',
+            letterSpacing: '0.06em',
+            color: 'rgba(26,26,24,0.35)',
+            maxWidth: 'min(520px, 42vw)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {dataProvenanceLabel ?? 'Mock data — v0.1'}
         </span>
         <span
           style={{

@@ -17,6 +17,7 @@ import type {
   HistoryItem,
 } from '@/lib/types';
 import { selectMockData } from '@/lib/mockDataSelector';
+import { formatModuleDataProvenance } from '@/lib/formatProvenance';
 
 // ── Cream input page (Claude-style, original ALETHEIA) ────────────────────────
 function CreamLandingPage({
@@ -672,11 +673,7 @@ export default function Page() {
       if (rawModuleData) {
         try {
           const realData: ModuleData = JSON.parse(atob(rawModuleData));
-          setModuleData(prev => ({
-            voting: realData.voting ?? prev.voting,
-            lobbying: prev.lobbying, // no real API — keep mock
-            news: realData.news ?? prev.news,
-          }));
+          setModuleData(realData);
         } catch { /* keep mock if header is malformed */ }
       }
 
@@ -777,7 +774,12 @@ export default function Page() {
               </div>
             </div>
 
-            <StatusBar activeModules={activeModules} timing={timing} isLoading={isLoading} />
+            <StatusBar
+              activeModules={activeModules}
+              timing={timing}
+              isLoading={isLoading}
+              dataProvenanceLabel={formatModuleDataProvenance(moduleData.meta)}
+            />
           </motion.div>
         )}
       </AnimatePresence>

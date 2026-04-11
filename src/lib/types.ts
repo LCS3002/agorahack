@@ -120,11 +120,29 @@ export interface NewsResult {
   };
 }
 
+// ── Provenance (which slices are live API vs curated fixture) ─────────────────
+export type DataProvenance = 'api' | 'mock' | 'hybrid';
+
+export interface ModuleSliceMeta {
+  source: DataProvenance;
+  /** True when roll-call / org list / chart mixes live + fixture or is incomplete */
+  partial: boolean;
+  /** Short explanation for UI / debugging */
+  label: string;
+}
+
+export interface ModuleDataMeta {
+  voting?: ModuleSliceMeta;
+  lobbying?: ModuleSliceMeta;
+  news?: ModuleSliceMeta;
+}
+
 // ── Aggregated module data ────────────────────────────────────────────────────
 export interface ModuleData {
   voting?: VoteResult;
   lobbying?: LobbyingResult;
   news?: NewsResult;
+  meta?: ModuleDataMeta;
 }
 
 // ── Query history ─────────────────────────────────────────────────────────────
