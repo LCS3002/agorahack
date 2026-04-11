@@ -16,32 +16,41 @@ export function Header({ onLogoClick }: { onLogoClick?: () => void }) {
         onClick={onLogoClick}
         style={{
           display: 'flex',
-          alignItems: 'baseline',
-          gap: '12px',
+          alignItems: 'center',
+          gap: '10px',
           cursor: onLogoClick ? 'pointer' : 'default',
         }}
       >
-        <span
-          style={{
-            fontSize: '20px',
-            fontWeight: 200,
-            letterSpacing: '0.18em',
-            color: '#1A1A18',
-          }}
-        >
-          ALETHEIA
-        </span>
-        <span
-          style={{
-            fontSize: '9px',
-            fontWeight: 400,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: 'rgba(26,26,24,0.4)',
-          }}
-        >
-          EU Political Intelligence
-        </span>
+        <img
+          src="/logo_a.png"
+          alt="Aletheia"
+          style={{ height: '36px', width: 'auto', display: 'block', objectFit: 'contain' }}
+        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          <span
+            style={{
+              fontSize: '20px',
+              fontWeight: 200,
+              letterSpacing: '0.18em',
+              color: '#1A1A18',
+              lineHeight: 1,
+            }}
+          >
+            ALETHEIA
+          </span>
+          <span
+            style={{
+              fontSize: '9px',
+              fontWeight: 400,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: 'rgba(26,26,24,0.4)',
+              lineHeight: 1,
+            }}
+          >
+            EU Political Intelligence
+          </span>
+        </div>
       </div>
 
     </header>
