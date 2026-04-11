@@ -1,10 +1,25 @@
 import { NextRequest } from 'next/server';
-import type { ClassificationResult, ModuleData } from '@/lib/types';
+import type { ClassificationResult, ModuleData, ModuleSliceMeta } from '@/lib/types';
 import { selectMockData } from '@/lib/mockDataSelector';
 import { mergeModuleData } from '@/lib/pipeline/mergeModuleData';
 import { fetchParliamentVotingData } from '@/lib/sources/parliament';
 import { fetchGdeltNewsData } from '@/lib/sources/gdelt';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
+import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
+
+function prepareModuleBase(
+  classification: ClassificationResult,
+  query: string,
+): { mockBase: ModuleData; lobbyingSliceMeta?: ModuleSliceMeta } {
+  let mockBase = selectMockData(classification, query);
+  let lobbyingSliceMeta: ModuleSliceMeta | undefined;
+  if (classification.modules.includes('LOBBYING') && mockBase.lobbying) {
+    const reg = buildLobbyingFromRegisterSnapshot(query, classification.entities, mockBase.lobbying);
+    mockBase = { ...mockBase, lobbying: reg.lobbying };
+    lobbyingSliceMeta = reg.sliceMeta;
+  }
+  return { mockBase, lobbyingSliceMeta };
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeTool(name: string, input: Record<string, any>) {
@@ -58,7 +73,7 @@ export async function POST(request: NextRequest) {
   };
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  const mockBase = selectMockData(classification, query);
+  const { mockBase, lobbyingSliceMeta } = prepareModuleBase(classification, query);
 
   // ── No API key: run real data tools directly, return fallback text ────────
   if (!apiKey) {
@@ -77,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (newsResult.status === 'fulfilled' && newsResult.value)
       toolResults.push({ name: 'fetch_news_data', result: newsResult.value as unknown as Record<string, unknown> });
 
-    const moduleData = mergeModuleData(classification, mockBase, toolResults);
+    const moduleData = mergeModuleData(classification, mockBase, toolResults, { lobbyingSliceMeta });
     const text = getFallbackSummary(query, moduleData);
     const moduleDataB64 = Buffer.from(JSON.stringify(moduleData)).toString('base64');
 
@@ -198,7 +213,7 @@ Fetch the relevant data and write your summary.`,
       }
     }
 
-    const moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator);
+    const moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator, { lobbyingSliceMeta });
     if (!finalText) finalText = getFallbackSummary(query, moduleData);
 
     const moduleDataB64 = Buffer.from(JSON.stringify(moduleData)).toString('base64');
@@ -225,8 +240,9 @@ Fetch the relevant data and write your summary.`,
     });
   } catch (err) {
     console.error('Summarize error:', err);
+    const { mockBase: mb, lobbyingSliceMeta: lm } = prepareModuleBase(classification, query);
     const emptyTools: { name: string; result: Record<string, unknown> }[] = [];
-    const moduleData = mergeModuleData(classification, mockBase, emptyTools);
+    const moduleData = mergeModuleData(classification, mb, emptyTools, { lobbyingSliceMeta: lm });
     const text = getFallbackSummary(query, moduleData);
     const moduleDataB64 = Buffer.from(JSON.stringify(moduleData)).toString('base64');
     return new Response(text, {

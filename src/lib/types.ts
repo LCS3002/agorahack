@@ -84,6 +84,14 @@ export interface ConflictFlag {
   amount: number;
 }
 
+/** Heuristic “signals” from register overlap — not proven MEP-level conflicts */
+export interface PartialLobbyingConflict {
+  label: string;
+  severity: 'low' | 'medium' | 'high';
+  reason: string;
+  partial: true;
+}
+
 export interface LobbyingResult {
   topic: string;
   totalDeclaredSpend: number; // millions EUR
@@ -91,6 +99,7 @@ export interface LobbyingResult {
   conflictFlags: ConflictFlag[];
   period: string;
   registryUrl: string;
+  partialConflicts?: PartialLobbyingConflict[];
 }
 
 // ── NEWS module ───────────────────────────────────────────────────────────────
@@ -121,7 +130,7 @@ export interface NewsResult {
 }
 
 // ── Provenance (which slices are live API vs curated fixture) ─────────────────
-export type DataProvenance = 'api' | 'mock' | 'hybrid';
+export type DataProvenance = 'api' | 'mock' | 'hybrid' | 'register';
 
 export interface ModuleSliceMeta {
   source: DataProvenance;

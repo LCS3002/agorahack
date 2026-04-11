@@ -102,6 +102,35 @@ export function LobbyingCard({ data }: LobbyingCardProps) {
       </div>
 
       {/* Conflict flags */}
+      {(data.partialConflicts?.length ?? 0) > 0 && (
+        <div>
+          <div className="label-xs" style={{ marginBottom: '10px', color: 'rgba(26,26,24,0.45)' }}>
+            Heuristic signals (partial)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {(data.partialConflicts ?? []).map((s) => (
+              <div
+                key={s.label}
+                style={{
+                  border: '1px solid rgba(26,26,24,0.1)',
+                  padding: '8px 10px',
+                  fontSize: '10px',
+                  fontWeight: 300,
+                  color: 'rgba(26,26,24,0.6)',
+                  lineHeight: 1.45,
+                }}
+              >
+                <span style={{ fontWeight: 500, color: '#1A1A18' }}>{s.label}</span>
+                <span style={{ fontSize: '8px', marginLeft: '6px', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)' }}>
+                  {s.severity}
+                </span>
+                <div style={{ marginTop: '4px' }}>{s.reason}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {data.conflictFlags.length > 0 && (
         <div>
           <div className="label-xs" style={{ marginBottom: '10px', color: '#C9A89A' }}>

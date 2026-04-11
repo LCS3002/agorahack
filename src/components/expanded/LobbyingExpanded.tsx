@@ -19,6 +19,7 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
 
   const maxSpend = Math.max(...data.organizations.map(o => o.spend));
   const totalMeetings = data.organizations.reduce((s, o) => s + o.meetings, 0);
+  const signalN = data.partialConflicts?.length ?? 0;
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F0EDE8' }}>
@@ -55,7 +56,7 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
             { label: 'Total Declared Spend', value: `€${data.totalDeclaredSpend.toFixed(1)}M` },
             { label: 'Total Meetings Logged', value: totalMeetings.toString() },
             { label: 'Organisations', value: data.organizations.length.toString() },
-            { label: 'Conflict Flags', value: data.conflictFlags.length.toString() },
+            { label: 'Flags / Signals', value: `${data.conflictFlags.length} / ${signalN}` },
           ].map((stat, i) => (
             <div key={stat.label} style={{
               padding: '20px 24px',
@@ -159,8 +160,27 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
 
           {/* Right: Conflict analysis */}
           <div style={{ padding: '20px 20px' }}>
+            {signalN > 0 && (
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.38)', marginBottom: '10px' }}>
+                  Heuristic signals (not proven conflicts)
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {(data.partialConflicts ?? []).map((s) => (
+                    <div key={s.label} style={{ border: '1px solid rgba(26,26,24,0.1)', padding: '12px 14px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 400, color: '#1A1A18' }}>{s.label}</div>
+                      <div style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(26,26,24,0.35)', marginTop: '4px' }}>
+                        {s.severity} · partial
+                      </div>
+                      <p style={{ fontSize: '10px', fontWeight: 300, color: 'rgba(26,26,24,0.55)', lineHeight: 1.55, margin: '8px 0 0' }}>{s.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: data.conflictFlags.length > 0 ? '#C9A89A' : 'rgba(26,26,24,0.38)', marginBottom: '14px' }}>
-              {data.conflictFlags.length > 0 ? `⚠ ${data.conflictFlags.length} Conflict Flag${data.conflictFlags.length > 1 ? 's' : ''}` : 'Conflict Analysis'}
+              {data.conflictFlags.length > 0 ? `⚠ ${data.conflictFlags.length} Conflict Flag${data.conflictFlags.length > 1 ? 's' : ''}` : 'Scenario conflict flags'}
             </div>
 
             {data.conflictFlags.length === 0 ? (

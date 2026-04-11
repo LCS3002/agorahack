@@ -1,4 +1,16 @@
-import type { ClassificationResult, ModuleData, ModuleDataMeta, NewsHeadline, SentimentPoint } from '@/lib/types';
+import type {
+  ClassificationResult,
+  ModuleData,
+  ModuleDataMeta,
+  ModuleSliceMeta,
+  NewsHeadline,
+  SentimentPoint,
+} from '@/lib/types';
+
+export interface MergeModuleDataOptions {
+  /** When set, overrides default lobbying provenance (e.g. register snapshot) */
+  lobbyingSliceMeta?: ModuleSliceMeta;
+}
 
 /**
  * Merge live tool payloads onto the scenario fixture from `selectMockData`,
@@ -8,6 +20,7 @@ export function mergeModuleData(
   classification: ClassificationResult,
   mockBase: ModuleData,
   toolResults: { name: string; result: Record<string, unknown> }[],
+  options?: MergeModuleDataOptions,
 ): ModuleData {
   const out: ModuleData = { ...mockBase };
 
@@ -75,13 +88,14 @@ export function mergeModuleData(
     }
   }
 
-  out.meta = buildModuleMeta(classification, toolResults);
+  out.meta = buildModuleMeta(classification, toolResults, options?.lobbyingSliceMeta);
   return out;
 }
 
 function buildModuleMeta(
   classification: ClassificationResult,
   toolResults: { name: string; result: Record<string, unknown> }[],
+  lobbyingSliceMeta?: ModuleSliceMeta,
 ): ModuleDataMeta | undefined {
   const meta: ModuleDataMeta = {};
 
@@ -108,10 +122,10 @@ function buildModuleMeta(
   }
 
   if (classification.modules.includes('LOBBYING')) {
-    meta.lobbying = {
+    meta.lobbying = lobbyingSliceMeta ?? {
       source: 'mock',
       partial: true,
-      label: 'Curated scenario (EU Transparency Register connector TBD)',
+      label: 'Curated scenario (no register path)',
     };
   }
 
