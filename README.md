@@ -306,7 +306,7 @@ Built at **AgoraHacks 2026** in 48 hours.
 | Contributor | Background | Links |
 |---|---|---|
 | **Yichen Hsu** · [@gunjyo0817](https://github.com/gunjyo0817) | Computer Science @ NTHU · exchange at TUM | [LinkedIn](https://www.linkedin.com/in/yichenhsu/) |
-| **Miloš Preradović** · [@prmilos](https://github.com/prmilos) | Wirtschaftsingenieurwesen Maschinenbau @ TU Vienna | [LinkedIn](https://www.linkedin.com/in/milo%C5%A1-preradovi%C4%87-9a0329387/) |
+| **Miloš Preradović** · [@prmilos](https://github.com/prmilos) | Economics and Engineering @ TU Vienna | [LinkedIn](https://www.linkedin.com/in/milo%C5%A1-preradovi%C4%87-9a0329387/) |
 | **Lorenz Huber** · [@LCS3002](https://github.com/LCS3002) | Architecture @ UCL · London | [LinkedIn](https://www.linkedin.com/in/huberlorenz) |
 
 ---
