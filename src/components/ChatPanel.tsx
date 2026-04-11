@@ -1,13 +1,15 @@
 'use client';
 
 import { useRef, useEffect, useState, FormEvent } from 'react';
-import type { HistoryItem, ModuleType } from '@/lib/types';
+import type { HistoryItem, ModuleType, SummarySourceLink } from '@/lib/types';
 
 interface ChatPanelProps {
   summary: string;
   isLoading: boolean;
   history: HistoryItem[];
   activeModules: ModuleType[];
+  /** From merged module data — enables clickable [n] and Sources list */
+  summarySources?: SummarySourceLink[];
   onSubmit: (query: string) => void;
   onDemoQuery: (query: string) => void;
   hasQuery: boolean;
@@ -23,20 +25,60 @@ const DEMO_QUERIES = [
 ];
 
 // ── Citation renderer ─────────────────────────────────────────────────────────
-function SummaryWithCitations({ text, isStreaming }: { text: string; isStreaming: boolean }) {
+function SummaryWithCitations({
+  text,
+  isStreaming,
+  linkedSources,
+}: {
+  text: string;
+  isStreaming: boolean;
+  linkedSources?: SummarySourceLink[];
+}) {
   const sourcesIdx = text.indexOf('\nSOURCES\n');
   const body    = sourcesIdx !== -1 ? text.slice(0, sourcesIdx) : text;
   const sources = sourcesIdx !== -1 ? text.slice(sourcesIdx + 9) : '';
 
+  const numToUrl = new Map<number, string>();
+  for (const s of linkedSources ?? []) numToUrl.set(s.num, s.url);
+
   function renderBody(t: string) {
     const parts = t.split(/(\[\d+\])/g);
     return parts.map((part, i) => {
-      if (/^\[\d+\]$/.test(part)) {
-        return (
-          <sup key={i} style={{ fontSize: '7.5px', color: '#C9A89A', marginLeft: '1px', fontWeight: 500, verticalAlign: 'super', lineHeight: 1 }}>
+      const cm = part.match(/^\[(\d+)\]$/);
+      if (cm) {
+        const num = parseInt(cm[1], 10);
+        const url = numToUrl.get(num);
+        const sup = (
+          <sup
+            style={{
+              fontSize: '7.5px',
+              color: '#C9A89A',
+              marginLeft: '1px',
+              fontWeight: 500,
+              verticalAlign: 'super',
+              lineHeight: 1,
+              textDecoration: url ? 'underline' : 'none',
+              textUnderlineOffset: '2px',
+            }}
+          >
             {part}
           </sup>
         );
+        if (url) {
+          return (
+            <a
+              key={i}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open source"
+              style={{ textDecoration: 'none' }}
+            >
+              {sup}
+            </a>
+          );
+        }
+        return <span key={i}>{sup}</span>;
       }
       return <span key={i}>{part}</span>;
     });
@@ -46,6 +88,8 @@ function SummaryWithCitations({ text, isStreaming }: { text: string; isStreaming
     .split('\n')
     .map(l => l.trim())
     .filter(l => /^\[\d+\]/.test(l));
+
+  const showStructured = (linkedSources?.length ?? 0) > 0;
 
   return (
     <>
@@ -57,7 +101,38 @@ function SummaryWithCitations({ text, isStreaming }: { text: string; isStreaming
         <style>{`@keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }`}</style>
       </div>
 
-      {sourceLines.length > 0 && (
+      {showStructured && (
+        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(26,26,24,0.08)' }}>
+          <div style={{ fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)', marginBottom: '8px' }}>
+            Sources
+          </div>
+          {linkedSources!.map(s => (
+            <div key={s.num} style={{ display: 'flex', gap: '7px', marginBottom: '5px', alignItems: 'flex-start' }}>
+              <a
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  gap: '7px',
+                  alignItems: 'flex-start',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                <span style={{ fontSize: '7.5px', color: '#C9A89A', fontWeight: 500, flexShrink: 0, lineHeight: 1.6 }}>[{s.num}]</span>
+                <span style={{ fontSize: '9.5px', fontWeight: 300, color: 'rgba(26,26,24,0.55)', lineHeight: 1.6, textDecoration: 'underline', textDecorationColor: 'rgba(201,168,154,0.45)', textUnderlineOffset: '2px' }}>
+                  {s.label}
+                </span>
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!showStructured && sourceLines.length > 0 && (
         <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(26,26,24,0.08)' }}>
           <div style={{ fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)', marginBottom: '8px' }}>
             Sources
@@ -113,6 +188,7 @@ export function ChatPanel({
   summary,
   isLoading,
   history,
+  summarySources,
   onSubmit,
   onDemoQuery,
   hasQuery,
@@ -364,7 +440,7 @@ export function ChatPanel({
 
               {summary && (
                 <div ref={summaryRef}>
-                  <SummaryWithCitations text={summary} isStreaming={isLoading} />
+                  <SummaryWithCitations text={summary} isStreaming={isLoading} linkedSources={summarySources} />
                 </div>
               )}
             </div>

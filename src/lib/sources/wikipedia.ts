@@ -1,4 +1,9 @@
-export async function fetchWikipediaEntitySummary(entity: string): Promise<{ summary: string | null; found: boolean }> {
+export async function fetchWikipediaEntitySummary(entity: string): Promise<{
+  summary: string | null;
+  found: boolean;
+  pageUrl?: string;
+  title?: string;
+}> {
   try {
     const encoded = encodeURIComponent(entity.replace(/ /g, '_'));
     const res = await fetch(
@@ -6,8 +11,18 @@ export async function fetchWikipediaEntitySummary(entity: string): Promise<{ sum
       { signal: AbortSignal.timeout(5000), headers: { Accept: 'application/json' } },
     );
     if (!res.ok) return { summary: null, found: false };
-    const data = await res.json();
-    return { summary: (data.extract as string | undefined) ?? null, found: true };
+    const data = (await res.json()) as {
+      extract?: string;
+      content_urls?: { desktop?: { page?: string } };
+      title?: string;
+    };
+    const pageUrl = data.content_urls?.desktop?.page;
+    return {
+      summary: data.extract ?? null,
+      found: true,
+      ...(pageUrl ? { pageUrl } : {}),
+      ...(data.title ? { title: data.title } : {}),
+    };
   } catch {
     return { summary: null, found: false };
   }

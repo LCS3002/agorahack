@@ -6,6 +6,7 @@ import { fetchParliamentVotingData } from '@/lib/sources/parliament';
 import { fetchGdeltNewsData } from '@/lib/sources/gdelt';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
+import { withSummarySources } from '@/lib/pipeline/summarySources';
 
 function prepareModuleBase(
   classification: ClassificationResult,
@@ -73,6 +74,7 @@ Rules for the summary:
 - Do not start with "The data shows" or "Based on the tools"
 - After the summary, add a blank line, then "SOURCES" on its own line
 - Add numbered citations [1] [2] [3] inline and as a list after SOURCES
+- Number citations in this order when those tools returned data: [1] EP procedure / vote, [2] EU Transparency Register, [3] a news headline (use its URL from fetch_news_data when present), [4] Wikipedia background URL from get_entity_background
 - 2-4 sources maximum, only cite what you actually reference`;
 
 // ── Fallback (no API key) ──────────────────────────────────────────────────────
@@ -123,7 +125,8 @@ export async function POST(request: NextRequest) {
     if (newsResult.status === 'fulfilled' && newsResult.value)
       toolResults.push({ name: 'fetch_news_data', result: newsResult.value as unknown as Record<string, unknown> });
 
-    const moduleData = mergeModuleData(classification, mockBase, toolResults, { lobbyingSliceMeta });
+    let moduleData = mergeModuleData(classification, mockBase, toolResults, { lobbyingSliceMeta });
+    moduleData = withSummarySources(moduleData, toolResults);
     const text = getFallbackSummary(query, moduleData);
     const moduleDataB64 = Buffer.from(JSON.stringify(moduleData)).toString('base64');
 
@@ -260,7 +263,8 @@ Fetch the relevant data and write your summary.${prefetchNote}`,
       toolResultsAccumulator = [...rest, { name: 'fetch_voting_data', result: prefetchedVoting }];
     }
 
-    const moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator, { lobbyingSliceMeta });
+    let moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator, { lobbyingSliceMeta });
+    moduleData = withSummarySources(moduleData, toolResultsAccumulator);
     if (!finalText) finalText = getFallbackSummary(query, moduleData);
 
     const moduleDataB64 = Buffer.from(JSON.stringify(moduleData)).toString('base64');
@@ -289,7 +293,8 @@ Fetch the relevant data and write your summary.${prefetchNote}`,
     console.error('Summarize error:', err);
     const { mockBase: mb, lobbyingSliceMeta: lm } = prepareModuleBase(classification, query);
     const emptyTools: { name: string; result: Record<string, unknown> }[] = [];
-    const moduleData = mergeModuleData(classification, mb, emptyTools, { lobbyingSliceMeta: lm });
+    let moduleData = mergeModuleData(classification, mb, emptyTools, { lobbyingSliceMeta: lm });
+    moduleData = withSummarySources(moduleData, emptyTools);
     const text = getFallbackSummary(query, moduleData);
     const moduleDataB64 = Buffer.from(JSON.stringify(moduleData)).toString('base64');
     return new Response(text, {
