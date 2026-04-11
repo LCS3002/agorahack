@@ -1,12 +1,12 @@
 import type { ClassificationResult } from '@/lib/types';
-import { createOpenAIClient, withOpenAISeparateReasoningBody } from './provider';
+import { createOpenAIClient, defaultOpenAIClassifyModel, withOpenAISeparateReasoningBody } from './provider';
 
 export async function classifyQueryWithOpenAI(
   query: string,
   systemPrompt: string,
 ): Promise<ClassificationResult> {
   const openai = createOpenAIClient();
-  const model = process.env.OPENAI_MODEL_CLASSIFY?.trim() || 'gpt-4o-mini';
+  const model = defaultOpenAIClassifyModel();
 
   const completion = await openai.chat.completions.create(
     withOpenAISeparateReasoningBody({

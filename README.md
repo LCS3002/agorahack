@@ -242,6 +242,7 @@ Open [http://localhost:3000](http://localhost:3000).
 OPENAI_API_KEY=...
 OPENAI_BASE_URL=https://external.model.tngtech.com/v1/
 TEAM_NAME=your-team-slug
+# If you omit these, TNG URLs default to tngtech/R1T2-Chimera-Speed; api.openai.com defaults to gpt-4o-mini / gpt-4o.
 OPENAI_MODEL_CLASSIFY=tngtech/R1T2-Chimera-Speed
 OPENAI_MODEL_AGENT=tngtech/R1T2-Chimera-Speed
 # Optional — TNG: reasoning in a separate response field (see booklet). Use one:

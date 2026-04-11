@@ -24,6 +24,28 @@ export function withOpenAISeparateReasoningBody(body: Record<string, unknown>): 
   return { ...body, separate_reasoning: true };
 }
 
+/** TNG hackathon gateway only exposes a fixed model list — not OpenAI IDs like gpt-4o. */
+export function isTngOpenAiBaseUrl(): boolean {
+  const base = process.env.OPENAI_BASE_URL?.trim().toLowerCase() ?? '';
+  return base.includes('tngtech.com');
+}
+
+const DEFAULT_TNG_CHAT_MODEL = 'tngtech/R1T2-Chimera-Speed';
+
+/** `OPENAI_MODEL_CLASSIFY` or a sane default for the configured base URL. */
+export function defaultOpenAIClassifyModel(): string {
+  const override = process.env.OPENAI_MODEL_CLASSIFY?.trim();
+  if (override) return override;
+  return isTngOpenAiBaseUrl() ? DEFAULT_TNG_CHAT_MODEL : 'gpt-4o-mini';
+}
+
+/** `OPENAI_MODEL_AGENT` or a sane default for the configured base URL. */
+export function defaultOpenAIAgentModel(): string {
+  const override = process.env.OPENAI_MODEL_AGENT?.trim();
+  if (override) return override;
+  return isTngOpenAiBaseUrl() ? DEFAULT_TNG_CHAT_MODEL : 'gpt-4o';
+}
+
 /** Prefer OpenAI when `OPENAI_API_KEY` is set (works with OpenAI-compatible gateways via `OPENAI_BASE_URL`). */
 export function resolveActiveLlmProvider(): ActiveLlmProvider {
   if (process.env.OPENAI_API_KEY?.trim()) return 'openai';

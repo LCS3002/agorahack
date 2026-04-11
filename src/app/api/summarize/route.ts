@@ -7,7 +7,7 @@ import { fetchGdeltNewsData } from '@/lib/sources/gdelt';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
 import { withSummarySources } from '@/lib/pipeline/summarySources';
-import { createOpenAIClient, resolveActiveLlmProvider } from '@/lib/llm/provider';
+import { createOpenAIClient, defaultOpenAIAgentModel, resolveActiveLlmProvider } from '@/lib/llm/provider';
 import { runOpenAISummarizeAgent } from '@/lib/llm/openaiSummarizeAgent';
 
 function prepareModuleBase(
@@ -178,7 +178,7 @@ Fetch the relevant data and write your summary.${prefetchNote}`;
 
     if (provider === 'openai') {
       const openai = createOpenAIClient();
-      const model = process.env.OPENAI_MODEL_AGENT?.trim() || 'gpt-4o';
+      const model = defaultOpenAIAgentModel();
       const { finalText: ft, toolResults } = await runOpenAISummarizeAgent(openai, {
         model,
         system: AGENT_SYSTEM,
