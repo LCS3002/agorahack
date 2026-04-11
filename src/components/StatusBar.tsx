@@ -24,13 +24,14 @@ export function StatusBar({ activeModules, timing, isLoading, dataProvenanceLabe
         borderTop: '1px solid rgba(26,26,24,0.12)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        gap: '14px',
         padding: '0 28px',
         flexShrink: 0,
+        minWidth: 0,
       }}
     >
       {/* Module indicators */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
         {ALL_MODULES.map((mod, i) => {
           const isActive = activeModules.includes(mod);
           return (
@@ -67,8 +68,26 @@ export function StatusBar({ activeModules, timing, isLoading, dataProvenanceLabe
         })}
       </div>
 
-      {/* Centre — timing */}
-      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+      {/* Provenance — flex middle, never underlap timing */}
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+        <span
+          title={dataProvenanceLabel}
+          style={{
+            display: 'block',
+            fontSize: '9px',
+            letterSpacing: '0.06em',
+            color: 'rgba(26,26,24,0.35)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {dataProvenanceLabel ?? 'Mock data — v0.1'}
+        </span>
+      </div>
+
+      {/* Timing — own flex slot (was absolute; overlapped long provenance) */}
+      <div style={{ flexShrink: 0, width: '72px', textAlign: 'right' }}>
         {timing !== null && !isLoading && (
           <span style={{ fontSize: '9px', letterSpacing: '0.1em', color: 'rgba(26,26,24,0.35)' }}>
             {timing}ms
@@ -81,34 +100,18 @@ export function StatusBar({ activeModules, timing, isLoading, dataProvenanceLabe
         )}
       </div>
 
-      {/* Right */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <span
-          title={dataProvenanceLabel}
-          style={{
-            fontSize: '9px',
-            letterSpacing: '0.06em',
-            color: 'rgba(26,26,24,0.35)',
-            maxWidth: 'min(520px, 42vw)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {dataProvenanceLabel ?? 'Mock data — v0.1'}
-        </span>
-        <span
-          style={{
-            fontSize: '9px',
-            fontWeight: 500,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'rgba(26,26,24,0.25)',
-          }}
-        >
-          ALETHEIA A(01)
-        </span>
-      </div>
+      <span
+        style={{
+          fontSize: '9px',
+          fontWeight: 500,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          color: 'rgba(26,26,24,0.25)',
+          flexShrink: 0,
+        }}
+      >
+        ALETHEIA A(01)
+      </span>
     </div>
   );
 }

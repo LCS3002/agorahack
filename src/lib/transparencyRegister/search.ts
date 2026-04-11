@@ -192,8 +192,8 @@ export function buildLobbyingFromRegisterSnapshot(
   const n = records.length;
   const label =
     source === 'full'
-      ? `EU Transparency Register (ODP, ${n.toLocaleString()} orgs) · keyword match · ${freshness}`
-      : `Bundled sample (${n} orgs) · keyword match · add transparency-register.json`;
+      ? `EU Transparency Register (ODP, ${n.toLocaleString()} orgs) | keyword match | ${freshness}`
+      : `Bundled sample (${n} orgs) | keyword match | add transparency-register.json`;
 
   return {
     lobbying: { ...lobbying, partialConflicts },
