@@ -6,7 +6,7 @@
 import { committeeLabelFromProcedureEvents } from '@/lib/epProcedureCommittees';
 import type { KeyMEP, MEPProfile } from '@/lib/types';
 import { enrichKeyMepProfiles } from '@/lib/sources/epMepEnrichment';
-import { lookupHowTheyVoteMainVote, lookupHowTheyVoteVoteExtras } from '@/lib/sources/howTheyVote';
+import { lookupHowTheyVoteMainVote, lookupHowTheyVoteVoteExtras, searchHowTheyVoteByTitle } from '@/lib/sources/howTheyVote';
 
 export interface ParliamentVotingFetchResult {
   matchedDocuments: Array<{ title: string; reference: string; date: string }>;
@@ -149,9 +149,24 @@ export function processIdFromLegislationKeywords(text: string): string | null {
     /\bai act\b/.test(q) ||
     (q.includes('artificial intelligence act') && !q.includes('digital services act'));
 
+  const hasAsylumPact =
+    q.includes('asylum pact') ||
+    q.includes('pact on migration') ||
+    (q.includes('asylum') && (q.includes('migration') || q.includes('pact'))) ||
+    q.includes('ammr') ||
+    q.includes('2020/0279') ||
+    q.includes('2020-0279');
+  // Asylum Procedures Regulation (recast) — voted April 2024 as part of the Pact package
+  const hasAsylumProcedures =
+    !hasAsylumPact &&
+    (q.includes('asylum procedures') || q.includes('2016/0224') || q.includes('2016-0224'));
+
   if (hasDsa) return '2020-0361';
   if (hasDma) return '2020-0374';
   if (hasAi) return '2021-0106';
+  // Asylum and Migration Management Regulation — flagship regulation of the 2024 Pact
+  if (hasAsylumPact) return '2020-0279';
+  if (hasAsylumProcedures) return '2016-0224';
   return null;
 }
 
@@ -170,8 +185,10 @@ async function tryProcessIdFromPlenaryDocMatch(query: string, entities: string[]
   const d = await res.json();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const docs: any[] = d['@graph'] ?? d.results ?? [];
+  // Use content words only (skip stopwords that inflate false-positive scores)
+  const STOPWORDS_EP = new Set(['what','happened','with','the','about','that','this','tell','show','give','explain','when','how','who','did','does','was','were','will','would','could','from','into','onto','been','have','shall']);
   const terms = [
-    ...query.toLowerCase().split(/\s+/).filter(t => t.length > 3),
+    ...query.toLowerCase().split(/\s+/).filter(t => t.length > 3 && !STOPWORDS_EP.has(t)),
     ...entities.map(e => e.toLowerCase()),
   ];
   const scored = docs
@@ -262,6 +279,37 @@ export async function fetchParliamentVotingData(
     if (!processId) processId = processIdFromLegislationKeywords(haystack);
     if (!processId) processId = await tryProcessIdFromPlenaryDocMatch(query, entities);
     if (!processId) {
+      // Last resort: search the local HowTheyVote snapshot by procedure title —
+      // covers well-known votes not in the hardcoded keyword table and when EP APIs are slow/unavailable.
+      const titleHit = searchHowTheyVoteByTitle(query, entities);
+      if (titleHit) {
+        const htvDate = titleHit.timestamp?.slice(0, 10) ?? '';
+        const extras = lookupHowTheyVoteVoteExtras(titleHit.id);
+        const raw = extras?.keyMEPs as Array<KeyMEP & { memberId?: number }> | undefined;
+        const picks = raw
+          ?.filter((k): k is KeyMEP & { memberId: number } => typeof k.memberId === 'number')
+          .map(k => ({ memberId: k.memberId, name: k.name, party: k.party, country: k.country, vote: k.vote }))
+          ?? [];
+        const enr = picks.length ? await enrichKeyMepProfiles(picks, htvDate) : {};
+        return {
+          matchedDocuments: [{
+            title: titleHit.procedureTitle || titleHit.displayTitle,
+            reference: titleHit.procedureReference || titleHit.reference,
+            date: htvDate,
+          }],
+          recentVotes: [{
+            label: titleHit.displayTitle || titleHit.procedureTitle,
+            for: titleHit.for,
+            against: titleHit.against,
+            abstain: titleHit.abstain,
+            date: htvDate,
+            howTheyVoteVoteId: titleHit.id,
+          }],
+          queryMatched: true,
+          shortName: titleHit.reference?.trim() || titleHit.displayTitle,
+          ...enr,
+        };
+      }
       return { matchedDocuments: [], recentVotes: [], queryMatched: false };
     }
 

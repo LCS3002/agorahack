@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { ClassificationResult, ModuleType } from '@/lib/types';
 import { classifyQueryWithOpenAI } from '@/lib/llm/openaiClassify';
 import { resolveActiveLlmProvider } from '@/lib/llm/provider';
+import { normalizeSearchQuery } from '@/lib/normalizeQuery';
 
 // Haiku — cheapest model, ideal for fast JSON routing
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -12,8 +13,17 @@ const SYSTEM_PROMPT = `You are Aletheia's routing engine for EU political intell
   "entities": string[],
   "timeframe": string,
   "query_type": "person"|"legislation"|"topic"|"event",
+  "search_query": string,
   "moduleContext": { "VOTING"?: string, "LOBBYING"?: string, "NEWS"?: string }
 }
+
+search_query rules:
+- Strip ALL question-word preamble: "what happened with", "tell me about", "who voted for", "explain", etc.
+- Strip leading/trailing stop words and articles ("the", "a", "with", "about").
+- Keep proper nouns, acronyms, legislation names, years, and key topic words.
+- Examples: "what happened with the 2024 EU Asylum Pact" → "EU Asylum Pact 2024"; "tell me about AI Act lobbying" → "AI Act lobbying"; "who is von der Leyen" → "Ursula von der Leyen"; "taxonomy regulation vote" → "taxonomy regulation".
+- If the query is already clean, return it as-is.
+- Max 8 words.
 
 Module selection rules — load data only when contextually relevant:
 - Legislation / policy / directive / regulation / law / act / bill / vote / committee → VOTING + LOBBYING + NEWS
@@ -55,7 +65,7 @@ function fallbackClassify(query: string): ClassificationResult {
   );
   // Bill mentioned alongside person/party query?
   const hasBillMention = !!q.match(
-    /ai act|artificial intelligence|nature restoration|csrd|gdpr|dsa|dma|taxonomy|green deal|farm subsidies|cap\b|pfizer|pharma|vaccine/
+    /ai act|artificial intelligence|nature restoration|csrd|gdpr|dsa|dma|taxonomy|green deal|farm subsidies|cap\b|pfizer|pharma|vaccine|asylum pact|pact on migration|asylum.*pact|migration.*pact/
   );
 
   // Derive entities first so we can use them in moduleContext hints
@@ -71,6 +81,11 @@ function fallbackClassify(query: string): ClassificationResult {
   if (q.includes('csrd'))               entities.push('CSRD');
   if (q.includes('benifei'))            entities.push('Brando Benifei');
   if (q.includes('voss'))               entities.push('Axel Voss');
+  if (q.includes('asylum pact') || q.includes('pact on migration') ||
+      (q.includes('asylum') && q.includes('pact')))
+    entities.push('EU Pact on Migration and Asylum');
+  else if (q.includes('asylum') || q.includes('migration pact'))
+    entities.push('EU Asylum and Migration Policy');
 
   const entityName = entities[0] ?? 'this person';
 
@@ -110,6 +125,7 @@ function fallbackClassify(query: string): ClassificationResult {
     entities,
     timeframe: q.match(/\b20\d\d\b/) ? (q.match(/\b20\d\d\b/)![0]) : 'recent',
     query_type,
+    search_query: normalizeSearchQuery(query, entities),
     moduleContext: Object.keys(moduleContext).length ? moduleContext : undefined,
   };
 }

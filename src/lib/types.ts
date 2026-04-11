@@ -8,6 +8,12 @@ export interface ClassificationResult {
   entities: string[];
   timeframe: string;
   query_type: QueryType;
+  /**
+   * Clean search phrase extracted from the user query — question words, stop words, and
+   * preamble stripped. Used by all downstream search APIs (GDELT, Wikipedia, register, EP API).
+   * e.g. "what happened with the 2024 EU Asylum Pact" → "EU Asylum Pact 2024"
+   */
+  search_query?: string;
   /** Context hints for modules NOT in the active modules array — shown in dashboard empty states */
   moduleContext?: Partial<Record<ModuleType, string>>;
 }

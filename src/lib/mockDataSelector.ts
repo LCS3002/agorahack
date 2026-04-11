@@ -37,6 +37,10 @@ function detectKey(query: string, entities: string[]): DataKey {
   if (q.match(/pharma|pfizer|vaccine|leyen|biontech|sanofi|novartis|text|message/)) {
     return 'pharma';
   }
+  // Migration / asylum pact — use naturalRestoration as closest structural stand-in
+  if (q.match(/asylum|migration|refugee|pact on migration|\bceas\b|frontex|eurodac|screening regulation|return directive/)) {
+    return 'natureRestoration';
+  }
   if (q.match(/lobby|influenc|money|donor|spend|register/)) {
     return 'farmSubsidies'; // default lobbying topic
   }

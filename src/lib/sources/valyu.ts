@@ -1,6 +1,7 @@
 import type { NewsHeadline, SentimentPoint } from '@/lib/types';
 import { getNewsLean } from './domains';
 import type { GdeltFetchResult } from './gdelt';
+import { buildSearchPhrase } from '@/lib/normalizeQuery';
 
 function getDomain(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, ''); }
@@ -26,24 +27,23 @@ export async function fetchValyuNewsData(
   const apiKey = process.env.VALYU_API_KEY?.trim();
   if (!apiKey) throw new Error('VALYU_API_KEY not set');
 
-  // Build a targeted news query — don't force EU Parliament anchor for named entities
-  const entityPart = entities.find(e => e.length > 2) ?? '';
-  const searchQuery = entityPart
-    ? `${entityPart} ${query}`
-    : `${query} European Union`;
+  // Build a clean, focused search query — strip question words / stopwords from the raw user query
+  const searchQuery = buildSearchPhrase(query, entities);
 
   const res = await fetch('https://api.valyu.ai/v1/search', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'x-api-key': apiKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       query: searchQuery,
-      search_type: 'news',
+      search_type: 'all',          // 'all' = web + academic (covers news via web); change to 'news' if your plan includes it
       max_num_results: 15,
       response_length: 'short',
       is_tool_call: true,
+      // Anchor to last 12 months for EU political relevance
+      start_date: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     }),
     signal: AbortSignal.timeout(10000),
   });

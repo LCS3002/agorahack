@@ -69,3 +69,47 @@ export function lookupHowTheyVoteVoteExtras(voteId: number): {
   const row = (voteExtras as Record<string, { partyBreakdown: PartyVote[]; keyMEPs: KeyMEP[] }>)[String(voteId)];
   return row ?? null;
 }
+
+/**
+ * Fuzzy title search over the full HowTheyVote snapshot.
+ * Splits the query into content words (≥4 chars), scores each row by how many match
+ * in procedureTitle or displayTitle, returns the best match above a threshold.
+ *
+ * Covers queries that don't carry a procedure reference number, e.g.
+ * "taxonomy regulation", "return border procedure", "screening regulation".
+ */
+export function searchHowTheyVoteByTitle(
+  query: string,
+  entities: string[] = [],
+): HowTheyVoteMainRow | null {
+  const STOPWORDS = new Set([
+    'the','and','for','with','that','this','from','into','about','have',
+    'been','were','what','happened','tell','show','explain','give','when',
+    'how','who','did','does','was','will','would','could','should',
+  ]);
+
+  // Build search terms from entities + query, min 4 chars, no stopwords
+  const termSrc = [...entities, query].join(' ').toLowerCase();
+  const terms = [...new Set(
+    termSrc.split(/[^a-z0-9äöüßàéèùôîêâ]+/i)
+      .filter(w => w.length >= 4 && !STOPWORDS.has(w))
+  )];
+
+  if (terms.length === 0) return null;
+
+  let bestRow: HowTheyVoteMainRow | null = null;
+  let bestScore = 0;
+
+  for (const row of Object.values(INDEX)) {
+    const hay = `${row.procedureTitle ?? ''} ${row.displayTitle ?? ''}`.toLowerCase();
+    const score = terms.filter(t => hay.includes(t)).length;
+    // Require at least 2 matching terms (or 1 if the term is very specific / long)
+    const threshold = terms.length === 1 ? 1 : 2;
+    if (score >= threshold && score > bestScore) {
+      bestScore = score;
+      bestRow = row;
+    }
+  }
+
+  return bestRow;
+}

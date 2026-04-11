@@ -190,9 +190,13 @@ export function buildLobbyingFromRegisterSnapshot(
     };
   }
 
+  // Build a readable topic hint from the raw query, stripping common question-word prefixes
+  const cleanedQuery = query
+    .replace(/^(what|how|who|when|tell me about|explain|show me|give me)\s+(happened|is|are|was|were|about)?\s*/i, '')
+    .trim();
   const topicHint =
     entities[0] ??
-    (terms[0] ? `EU lobbying — ${terms.slice(0, 4).join(', ')}` : 'EU Transparency Register matches');
+    (cleanedQuery ? `EU lobbying — ${cleanedQuery.slice(0, 55)}` : 'EU Transparency Register matches');
 
   const lobbying = mapToLobbyingResult(topicHint, scored);
   const partialConflicts = buildPartialConflicts(scored.slice(0, 5), terms);

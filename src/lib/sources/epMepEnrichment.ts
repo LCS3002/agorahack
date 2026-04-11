@@ -68,13 +68,17 @@ export async function enrichKeyMepProfiles(
   const voteDay = voteDateIso.slice(0, 10);
   if (picks.length === 0) return { keyMEPs: [], mepProfiles: [] };
 
-  const mepRows = await Promise.all(
+  // Use allSettled so a single EP API timeout doesn't wipe all profiles
+  const mepSettled = await Promise.allSettled(
     picks.map(async p => {
       const j = await fetchJson(`${EP_V2}/meps/${p.memberId}`);
       const row = (j?.data as Record<string, unknown>[] | undefined)?.[0];
       return { pick: p, row: row ?? null };
     }),
   );
+  const mepRows = mepSettled
+    .map(r => r.status === 'fulfilled' ? r.value : null)
+    .filter((r): r is { pick: typeof picks[number]; row: Record<string, unknown> | null } => r !== null);
 
   const orgIds = new Set<string>();
   for (const { row } of mepRows) {
@@ -89,7 +93,7 @@ export async function enrichKeyMepProfiles(
   }
 
   const orgLabels = new Map<string, string>();
-  await Promise.all(
+  await Promise.allSettled(
     [...orgIds].map(async oid => {
       const j = await fetchJson(`${EP_V2}/corporate-bodies/${oid}`);
       const d = (j?.data as Record<string, unknown>[] | undefined)?.[0];

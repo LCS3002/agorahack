@@ -9,6 +9,7 @@ import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
 import { withSummarySources } from '@/lib/pipeline/summarySources';
 import { sanitizeAgentSummaryForUser } from '@/lib/pipeline/sanitizeAgentSummary';
+import { normalizeSearchQuery } from '@/lib/normalizeQuery';
 import { createOpenAIClient, defaultOpenAIAgentModel, resolveActiveLlmProvider } from '@/lib/llm/provider';
 import { runOpenAISummarizeAgent } from '@/lib/llm/openaiSummarizeAgent';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,15 +163,19 @@ function topLobbyingOrgBySpend(md: ModuleData) {
 function getFallbackSummary(query: string, md: ModuleData): string {
   if (md.lobbying?.conflictFlags?.length && md.voting) {
     const flag = md.lobbying.conflictFlags[0];
-    return `${flag.mepName} received ${flag.meetings} documented meetings with ${flag.lobbyist} — one of the top-spending lobbyists on ${md.voting.lawName} at €${flag.amount}M — while ultimately voting ${flag.votedFor ? 'in favour of' : 'against'} the legislation [1]. The ${md.lobbying.topic} saw €${md.lobbying.totalDeclaredSpend}M in declared lobbying expenditure [2].${md.news ? ` Media sentiment is ${md.news.sentimentLabel.toLowerCase()}, with divergence between left and right outlets on whether the outcome represents democratic capture or legitimate advocacy [3].` : ''}`;
+    const lawName = md.voting.lawName ?? 'this legislation';
+    return `${flag.mepName} received ${flag.meetings} documented meetings with ${flag.lobbyist} — one of the top-spending lobbyists on ${lawName} at €${flag.amount}M — while ultimately voting ${flag.votedFor ? 'in favour of' : 'against'} the legislation [1]. The ${md.lobbying.topic} saw €${md.lobbying.totalDeclaredSpend}M in declared lobbying expenditure [2].${md.news ? ` Media sentiment is ${md.news.sentimentLabel.toLowerCase()}, with divergence between left and right outlets on whether the outcome represents democratic capture or legitimate advocacy [3].` : ''}`;
   }
   if (md.voting) {
     const v = md.voting;
+    const lawName = v.lawName ?? query;
+    const status = v.status === 'PASSED' ? 'passed' : v.status === 'REJECTED' ? 'was rejected' : 'was voted on';
     const lead = topLobbyingOrgBySpend(md);
-    return `The ${v.lawName} passed with ${v.votes.for} votes in favour against ${v.votes.against} opposed — a margin that reflects political fracture, particularly within the EPP, where the vote split along national and agricultural interest lines [1].${md.lobbying && lead ? ` Declared lobbying spend among surfaced registrants totals €${md.lobbying.totalDeclaredSpend}M, with ${lead.name} highest at €${lead.spend}M [2].` : ''} The result is formally law, but the political coalition that produced it remains fragile [1].`;
+    return `The ${lawName} ${status} with ${v.votes?.for ?? 0} votes in favour against ${v.votes?.against ?? 0} opposed [1].${md.lobbying && lead ? ` Declared lobbying spend among surfaced registrants totals €${md.lobbying.totalDeclaredSpend}M, with ${lead.name} highest at €${lead.spend}M [2].` : ''} ${md.news ? `Media sentiment is ${md.news.sentimentLabel.toLowerCase()} [3].` : ''}`;
   }
   const lead2 = topLobbyingOrgBySpend(md);
-  return `The query "${query}" touches on active EU legislative and influence dynamics. Available data indicates significant lobbying activity and a contested political record [1]. The interests at play span industrial and civil society actors, with the balance of formal meetings and declared expenditure pointing toward ${lead2?.sector ?? md.lobbying?.organizations[0]?.sector ?? 'industry'} having disproportionate access to key decision-makers [2].`;
+  const sector = lead2?.sector ?? md.lobbying?.organizations?.[0]?.sector ?? 'industry';
+  return `The query "${query}" relates to active EU legislative and influence dynamics.${md.lobbying ? ` Declared lobbying expenditure totals €${md.lobbying.totalDeclaredSpend}M, with ${sector} actors most prominent [1].` : ''}`;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -183,6 +188,8 @@ export async function POST(request: NextRequest) {
   };
   const { query, classification } = body;
   const conversationHistory = body.conversationHistory ?? [];
+  // Use the LLM-extracted clean search phrase when available; fall back to regex normalizer
+  const searchQuery = classification.search_query || normalizeSearchQuery(query, classification.entities);
 
   const provider = resolveActiveLlmProvider();
   const { mockBase, lobbyingSliceMeta } = prepareModuleBase(classification, query);
@@ -202,10 +209,10 @@ export async function POST(request: NextRequest) {
 
           const [votingResult, newsResult] = await Promise.allSettled([
             classification.modules.includes('VOTING')
-              ? fetchParliamentVotingData(query, classification.entities)
+              ? fetchParliamentVotingData(searchQuery, classification.entities)
               : Promise.resolve(null),
             classification.modules.includes('NEWS')
-              ? fetchNewsData(query, classification.entities)
+              ? fetchNewsData(searchQuery, classification.entities)
               : Promise.resolve(null),
           ]);
 
@@ -242,17 +249,17 @@ export async function POST(request: NextRequest) {
 
         // Always fetch Wikipedia background for the primary entity / query — gives
         // the agent a solid knowledge base even when EP API + news APIs return nothing.
-        const backgroundEntity = classification.entities[0] || query.split(' ').slice(0, 4).join(' ');
+        const backgroundEntity = classification.entities[0] || searchQuery;
 
         const [votingSettled, newsSettled, wikiSettled] = await Promise.allSettled([
           classification.modules.includes('VOTING')
-            ? fetchParliamentVotingData(query, classification.entities).then(r => {
+            ? fetchParliamentVotingData(searchQuery, classification.entities).then(r => {
                 emit(`EVT_T:done:fetch_voting_data:${r.queryMatched ? 1 : 0}`);
                 return r;
               })
             : Promise.resolve(null),
           classification.modules.includes('NEWS')
-            ? fetchNewsData(query, classification.entities).then(r => {
+            ? fetchNewsData(searchQuery, classification.entities).then(r => {
                 emit(`EVT_T:done:fetch_news_data:${r.queryMatched ? 1 : 0}`);
                 return r;
               })
@@ -427,11 +434,12 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
 
         // Don't show fixture data when the query has no real match — clear unmatched modules
         // so the dashboard renders empty state rather than a wrong scenario.
+        // IMPORTANT: strip mock data BEFORE generating fallback text so the text matches what the UI shows.
         if (moduleData.meta?.voting?.source === 'mock') moduleData = { ...moduleData, voting: undefined };
         if (moduleData.meta?.news?.source === 'mock') moduleData = { ...moduleData, news: undefined };
 
         finalText = sanitizeAgentSummaryForUser(finalText);
-        if (!finalText) finalText = getFallbackSummary(query, moduleData);
+        if (!finalText) finalText = getFallbackSummary(searchQuery, moduleData);
 
         emit(`EVT_D:${Buffer.from(JSON.stringify(moduleData)).toString('base64')}`);
         emit(`EVT_X:${Buffer.from(finalText).toString('base64')}`);
@@ -443,7 +451,10 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
           const emptyTools: { name: string; result: Record<string, unknown> }[] = [];
           let moduleData = mergeModuleData(classification, mockBase, emptyTools, { lobbyingSliceMeta });
           moduleData = withSummarySources(moduleData, emptyTools);
-          const text = getFallbackSummary(query, moduleData);
+          // Clear mock data in error path too — don't emit stale fixture data as if it were real
+          if (moduleData.meta?.voting?.source === 'mock') moduleData = { ...moduleData, voting: undefined };
+          if (moduleData.meta?.news?.source === 'mock') moduleData = { ...moduleData, news: undefined };
+          const text = getFallbackSummary(searchQuery, moduleData);
           emit(`EVT_D:${Buffer.from(JSON.stringify(moduleData)).toString('base64')}`);
           emit(`EVT_X:${Buffer.from(text).toString('base64')}`);
         } finally {

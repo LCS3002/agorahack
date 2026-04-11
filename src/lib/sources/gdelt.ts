@@ -1,5 +1,6 @@
 import type { NewsHeadline, SentimentPoint } from '@/lib/types';
 import { getNewsLean, parseGDELTDate } from './domains';
+import { buildSearchPhrase } from '@/lib/normalizeQuery';
 
 export interface GdeltFetchResult {
   headlines: NewsHeadline[];
@@ -16,13 +17,18 @@ export async function fetchGdeltNewsData(
   try {
     const terms: string[] = [];
     const entity = entities.find(e => e.length > 3);
-    if (entity) terms.push(`"${entity}"`);
-    // Only anchor to European Parliament when the query is about EU legislation/politics,
-    // not for named entities like companies or people that may not have EP-specific coverage.
-    const isEuLegislation = /parliament|mep|commission|regulation|directive|legislation|vote|lobby/i.test(query);
+    // For GDELT, avoid quoting long multi-word phrases — they're too strict and return 0 results.
+    // Instead, take the 2-3 most distinctive content words from the entity.
+    const entityKeywords = entity
+      ? entity.split(/\s+/).filter(w => w.length > 3 && !/^(and|the|for|with|on|of|in|eu|european|union|pact)$/i.test(w)).slice(0, 3).join(' ')
+      : '';
+    if (entityKeywords) terms.push(entityKeywords);
+    // Only anchor to European Parliament when the query is about EU legislation/politics
+    const isEuLegislation = /parliament|mep|commission|regulation|directive|legislation|vote|lobby|asylum|migration/i.test(query);
     if (isEuLegislation || !entity) terms.push('European Parliament');
-    const extra = query.split(/\s+/).slice(0, 4).join(' ');
-    if (extra && extra !== entity) terms.push(extra);
+    // Add the cleaned search phrase for extra coverage
+    const extra = buildSearchPhrase(query, []);
+    if (extra && extra !== entityKeywords) terms.push(extra);
 
     const qs = new URLSearchParams({
       query: terms.join(' '),
@@ -47,6 +53,16 @@ export async function fetchGdeltNewsData(
     if (!articles.length) {
       return { headlines: [], sentiment: 0, sentimentHistory: [], framing: { left: '', centre: '', right: '' }, queryMatched: false };
     }
+
+    // Check at least one article title mentions something from the query/entities
+    // (GDELT can return generic EU Parliament articles with no topic relevance)
+    const relevanceTerms = [
+      ...(entity ? entity.toLowerCase().split(/\s+/).filter(w => w.length > 4) : []),
+      ...buildSearchPhrase(query, []).toLowerCase().split(/\s+/).filter(w => w.length > 4),
+    ];
+    const hasRelevantArticle = relevanceTerms.length === 0 || articles.some(a =>
+      relevanceTerms.some(t => a.title?.toLowerCase().includes(t))
+    );
 
     const headlines: NewsHeadline[] = articles
       .filter(a => a.title && a.url)
@@ -90,7 +106,7 @@ export async function fetchGdeltNewsData(
         centre: byLean.CENTRE[0]?.title ?? '',
         right: byLean.RIGHT[0]?.title ?? '',
       },
-      queryMatched: true,
+      queryMatched: hasRelevantArticle,
     };
   } catch {
     return { headlines: [], sentiment: 0, sentimentHistory: [], framing: { left: '', centre: '', right: '' }, queryMatched: false };

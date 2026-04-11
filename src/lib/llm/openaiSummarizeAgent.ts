@@ -120,8 +120,10 @@ export async function runOpenAISummarizeAgent(
       }
       options.onToolStart?.(fn.name);
       const result = await options.executeTool(fn.name, input);
-      const matched = (result as Record<string, unknown>)?.queryMatched !== false;
-      options.onToolDone?.(fn.name, typeof matched === 'boolean' ? matched : true);
+      const r = result as Record<string, unknown>;
+      // Only treat as matched when queryMatched is explicitly true (not just absent)
+      const matched = r?.queryMatched === true;
+      options.onToolDone?.(fn.name, matched);
       toolResults.push({ name: fn.name, result: result as Record<string, unknown> });
       messages.push({
         role: 'tool',
