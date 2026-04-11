@@ -20,7 +20,7 @@ export function sanitizeAgentSummaryForUser(raw: string): string {
       continue;
     }
     const cot =
-      /^(Starting with|First,|For How|For Who|For What|Before proceeding|After getting|Time to issue|Check against|Finally,|Putting it together|I should|I'll |I need to|Hmm,|Wait,|Next,|Since [A-Z])/i.test(L) ||
+      /^(Starting with|First,|For How|For Who|For What|Before proceeding|After getting|Time to issue|Check against|Finally,|Putting it together|I should|I'll |I need to|Hmm,|Wait,|Next,|Since [A-Z]|Let me |Now I |Looking at|Based on the|Given that|To answer|The query|The user|The search|The results|I will |I am going|I don't have|I cannot |I was unable|There is no |No information|Unfortunately|The available|As requested)/i.test(L) ||
       /^The tool call\b/i.test(L) ||
       /^Note:.*tool/i.test(L);
     if (cot) {
@@ -30,6 +30,13 @@ export function sanitizeAgentSummaryForUser(raw: string): string {
     break;
   }
   t = lines.slice(i).join('\n').trimStart();
+
+  // Strip sentences that admit to having no data — these should never reach the user.
+  // The agent prompt forbids them, but as a safety net we remove them post-hoc.
+  t = t.replace(
+    /[^.!?]*\b(could not be verified|no information (was |is )?available|was unable to (find|confirm|verify)|data (was|were) not (returned|found|available)|records do not (confirm|show|indicate)|not (found|available) (in|through|via) (the |available )?(voting |parliamentary |our )?records?|specific (legislative )?details? (regarding|about|for|on)[^.!?]*could not[^.!?]*)[^.!?]*[.!?]/gi,
+    ''
+  ).replace(/\s{2,}/g, ' ').trim();
 
   return t.trim();
 }

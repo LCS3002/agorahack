@@ -236,11 +236,15 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // ── With LLM: parallel pre-fetch voting + news ──────────────────────
+        // ── With LLM: parallel pre-fetch voting + news + Wikipedia background ──
         if (classification.modules.includes('VOTING')) emit('EVT_T:start:fetch_voting_data');
         if (classification.modules.includes('NEWS')) emit('EVT_T:start:fetch_news_data');
 
-        const [votingSettled, newsSettled] = await Promise.allSettled([
+        // Always fetch Wikipedia background for the primary entity / query — gives
+        // the agent a solid knowledge base even when EP API + news APIs return nothing.
+        const backgroundEntity = classification.entities[0] || query.split(' ').slice(0, 4).join(' ');
+
+        const [votingSettled, newsSettled, wikiSettled] = await Promise.allSettled([
           classification.modules.includes('VOTING')
             ? fetchParliamentVotingData(query, classification.entities).then(r => {
                 emit(`EVT_T:done:fetch_voting_data:${r.queryMatched ? 1 : 0}`);
@@ -253,6 +257,7 @@ export async function POST(request: NextRequest) {
                 return r;
               })
             : Promise.resolve(null),
+          fetchWikipediaEntitySummary(backgroundEntity),
         ]);
 
         const prefetchedVoting =
@@ -262,6 +267,10 @@ export async function POST(request: NextRequest) {
         const prefetchedNews =
           newsSettled.status === 'fulfilled' && (newsSettled.value as GdeltFetchResult | null)?.queryMatched
             ? (newsSettled.value as GdeltFetchResult)
+            : null;
+        const wikiResult =
+          wikiSettled.status === 'fulfilled' && wikiSettled.value?.found
+            ? wikiSettled.value
             : null;
 
         const prefetchNote = prefetchedVoting
@@ -274,13 +283,16 @@ export async function POST(request: NextRequest) {
           classification.modules.includes('LOBBYING') && mockBase.lobbying
             ? `\n\nPre-loaded declared lobbying context (use for **Who was active**; descriptive only, never imply influence on votes):\n${compactLobbyingSnapshotForPrompt(mockBase.lobbying)}\n`
             : '';
+        const wikiNote = wikiResult?.summary
+          ? `\n\nBackground context (Wikipedia — use freely across all sections as factual grounding):\n${wikiResult.summary.slice(0, 800)}\n`
+          : '';
 
         const userAgentContent = `Query: "${query}"
 Modules needed: ${classification.modules.join(', ')}
 Entities detected: ${classification.entities.join(', ') || 'none'}
 Timeframe: ${classification.timeframe}
 
-Write only the user-facing brief (four bold sections + SOURCES). Do not discuss tools or your plan.${prefetchNote}${newsNote}${lobbyingNote}`;
+Write only the user-facing brief (four bold sections + SOURCES). Do not discuss tools or your plan.${prefetchNote}${newsNote}${lobbyingNote}${wikiNote}`;
 
         // Multi-turn: prepend last 3 prior summaries as conversation context
         const priorMessages: ChatMsg[] = conversationHistory
@@ -305,7 +317,7 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
             executeTool: (name, input) => executeTool(name, input),
             onToolStart: (name) => emit(`EVT_T:start:${name}`),
             onToolDone: (name, matched) => emit(`EVT_T:done:${name}:${matched ? 1 : 0}`),
-            maxTokens: 520,
+            maxTokens: 900,
           });
           finalText = ft;
           toolResultsAccumulator = toolResults;
@@ -360,7 +372,7 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
           for (let round = 0; round < 3; round++) {
             const response = await client.messages.create({
               model: 'claude-sonnet-4-6',
-              max_tokens: 520,
+              max_tokens: 900,
               system: AGENT_SYSTEM,
               tools,
               messages,
