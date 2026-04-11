@@ -17,6 +17,7 @@
 ALETHEIA is an AI-powered political transparency platform for the European Union. Ask any question in natural language; the system classifies your intent, pulls structured data across three intelligence modules, and streams a cited analysis — surfacing who voted how, who spent what lobbying them, and how the media framed it.
 
 ![Aletheia Sprint Trajectory](https://metrics.lecoq.io/LCS3002/agorahack?template=repository&lines=1&base=0&config.timezone=Europe/London&bg_color=F0EDE8&color=1A1A18)
+
 ---
 
 ## The Problem
