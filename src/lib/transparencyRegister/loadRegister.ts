@@ -6,6 +6,16 @@ import registerSample from '@/data/transparency-register-sample.json';
 let cache: TransparencyRegisterRecord[] | null = null;
 let cacheSource: 'full' | 'sample' = 'sample';
 
+function isRegisterRow(x: unknown): x is TransparencyRegisterRecord {
+  if (!x || typeof x !== 'object') return false;
+  const o = x as Record<string, unknown>;
+  return typeof o.registration_id === 'string' && typeof o.organisation_name === 'string';
+}
+
+function isValidFullRegister(data: unknown): data is TransparencyRegisterRecord[] {
+  return Array.isArray(data) && data.length > 0 && isRegisterRow(data[0]);
+}
+
 /**
  * Loads `src/data/transparency-register.json` when present (from `npm run data:transparency`),
  * otherwise the small bundled sample. Server-only (Node fs).
@@ -18,8 +28,8 @@ export function getTransparencyRegisterRecords(): TransparencyRegisterRecord[] {
     if (fs.existsSync(fullPath)) {
       const raw = fs.readFileSync(fullPath, 'utf8');
       const data = JSON.parse(raw) as unknown;
-      if (Array.isArray(data) && data.length > 100) {
-        cache = data as TransparencyRegisterRecord[];
+      if (isValidFullRegister(data)) {
+        cache = data;
         cacheSource = 'full';
         return cache;
       }

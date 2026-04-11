@@ -112,17 +112,26 @@ function mapToLobbyingResult(
     .map((s) => {
       const midEur = (s.record.value_min_eur + s.record.value_max_eur) / 2;
       const spendM = midEur / 1_000_000;
-      const meetings = s.record.persons_involved ?? Math.max(2, Math.round(spendM * 5));
+      const meetings = Math.max(2, Math.round(spendM * 5));
+      const pi = s.record.persons_involved;
+      const peopleInvolved =
+        typeof pi === 'number' && Number.isFinite(pi) && pi >= 0 ? Math.round(pi) : undefined;
       const sector = s.record.category.length > 28 ? `${s.record.category.slice(0, 26)}…` : s.record.category;
       return {
         rank: 0,
         name: s.record.organisation_name,
         spend: Math.round(spendM * 100) / 100,
         meetings,
+        peopleInvolved,
         sector,
       };
     })
-    .sort((a, b) => b.spend - a.spend || b.meetings - a.meetings)
+    .sort(
+      (a, b) =>
+        b.spend - a.spend ||
+        (b.peopleInvolved ?? 0) - (a.peopleInvolved ?? 0) ||
+        b.meetings - a.meetings,
+    )
     .map((o, i) => ({ ...o, rank: i + 1 }));
 
   const totalDeclaredSpend =

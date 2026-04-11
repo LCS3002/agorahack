@@ -71,7 +71,10 @@ export interface LobbyingOrg {
   rank: number;
   name: string;
   spend: number; // millions EUR
+  /** Scenario “logged meetings” or, for register-derived rows, a heuristic proxy (not EP meeting counts). */
   meetings: number;
+  /** Declared persons / FTE from Transparency Register when present */
+  peopleInvolved?: number;
   sector: string;
 }
 

@@ -18,7 +18,9 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
     : data.organizations;
 
   const maxSpend = Math.max(...data.organizations.map(o => o.spend));
-  const totalMeetings = data.organizations.reduce((s, o) => s + o.meetings, 0);
+  const proxyIndexSum = data.organizations.reduce((s, o) => s + o.meetings, 0);
+  const registerPeople = data.organizations.some(o => o.peopleInvolved !== undefined);
+  const peopleSum = data.organizations.reduce((s, o) => s + (o.peopleInvolved ?? 0), 0);
   const signalN = data.partialConflicts?.length ?? 0;
 
   return (
@@ -54,7 +56,10 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
         }}>
           {[
             { label: 'Total Declared Spend', value: `€${data.totalDeclaredSpend.toFixed(1)}M` },
-            { label: 'Total Meetings Logged', value: totalMeetings.toString() },
+            {
+              label: registerPeople ? 'People (decl., Σ)' : 'Total Meetings Logged',
+              value: registerPeople ? peopleSum.toString() : proxyIndexSum.toString(),
+            },
             { label: 'Organisations', value: data.organizations.length.toString() },
             { label: 'Flags / Signals', value: `${data.conflictFlags.length} / ${signalN}` },
           ].map((stat, i) => (
@@ -113,7 +118,7 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {filtered.map(org => {
-                const intensity = org.meetings / (org.spend || 1); // meetings per €M — higher = more meetings per € spent
+                const intensity = org.meetings / (org.spend || 1); // proxy “access units” per €M for register rows
                 return (
                   <div key={org.name} style={{ paddingBottom: '12px', borderBottom: '1px solid rgba(26,26,24,0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
@@ -129,7 +134,11 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
                       <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexShrink: 0 }}>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: '12px', fontWeight: 400, color: '#1A1A18' }}>€{org.spend.toFixed(2)}M</div>
-                          <div style={{ fontSize: '8px', color: 'rgba(26,26,24,0.35)' }}>{org.meetings} meetings</div>
+                          <div style={{ fontSize: '8px', color: 'rgba(26,26,24,0.35)' }}>
+                            {org.peopleInvolved != null
+                              ? `${org.peopleInvolved} ppl (decl.) · est. ${org.meetings}`
+                              : `${org.meetings} meetings`}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -144,7 +153,9 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
                         <span style={{ fontSize: '8px', color: 'rgba(26,26,24,0.35)', letterSpacing: '0.06em' }}>
                           {intensity.toFixed(1)}×
                         </span>
-                        <span style={{ fontSize: '7px', color: 'rgba(26,26,24,0.25)', marginLeft: '3px' }}>intensity</span>
+                        <span style={{ fontSize: '7px', color: 'rgba(26,26,24,0.25)', marginLeft: '3px' }}>
+                          {registerPeople ? 'proxy/€M' : 'intensity'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -154,7 +165,9 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
 
             {/* Intensity note */}
             <div style={{ marginTop: '16px', fontSize: '9px', fontWeight: 300, color: 'rgba(26,26,24,0.3)', lineHeight: 1.6 }}>
-              Intensity = meetings per €1M declared spend. High intensity may indicate undeclared spend or disproportionate access relative to declared figures.
+              {registerPeople
+                ? '“People” = register-declared headcount/FTE where available. The est. figure is a spend-based access proxy, not EP meeting logs. Ratio = proxy per €1M declared spend.'
+                : 'Intensity = meetings per €1M declared spend. High intensity may indicate undeclared spend or disproportionate access relative to declared figures.'}
             </div>
           </div>
 
@@ -192,6 +205,7 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
                 {data.conflictFlags.map((flag, i) => {
                   const org = data.organizations.find(o => o.name === flag.lobbyist);
                   const accessScore = org ? (flag.meetings / org.meetings * 100).toFixed(0) : null;
+                  const orgUsesProxy = org != null && org.peopleInvolved !== undefined;
                   return (
                     <div key={i} style={{ border: '1px solid rgba(201,168,154,0.3)', padding: '14px 16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -217,7 +231,9 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
                         {accessScore && (
                           <div>
                             <div style={{ fontSize: '18px', fontWeight: 200, color: '#C9A89A' }}>{accessScore}%</div>
-                            <div style={{ fontSize: '7.5px', fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)' }}>of {flag.lobbyist} mtgs</div>
+                            <div style={{ fontSize: '7.5px', fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)' }}>
+                              of {flag.lobbyist} {orgUsesProxy ? 'access proxy' : 'mtgs'}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -226,7 +242,10 @@ export function LobbyingExpanded({ data, onCollapse }: Props) {
                         {flag.mepName} held {flag.meetings} documented meetings with {flag.lobbyist}
                         {' '}(declared spend: €{flag.amount}M) and subsequently voted{' '}
                         <strong style={{ fontWeight: 400 }}>{flag.votedFor ? 'in favour of' : 'against'}</strong> the legislation.
-                        {accessScore && ` They accounted for ${accessScore}% of all ${flag.lobbyist}'s logged parliamentary access on this file.`}
+                        {accessScore &&
+                          (orgUsesProxy
+                            ? ` They map to ${accessScore}% of ${flag.lobbyist}'s modelled access index (scenario MEP count vs org proxy).`
+                            : ` They accounted for ${accessScore}% of all ${flag.lobbyist}'s logged parliamentary access on this file.`)}
                       </p>
                     </div>
                   );
