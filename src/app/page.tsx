@@ -280,10 +280,7 @@ function LandingPage({
       }}>
         {/* Logo — matches Header.tsx exactly */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 7, height: 7, background: '#C9A89A',
-            animation: 'aletheiaPulse 1s steps(2) infinite',
-          }} />
+          <div style={{ width: 7, height: 7, background: '#C9A89A' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span style={{ fontSize: 20, fontWeight: 200, letterSpacing: '0.18em', color: '#1A1A18', lineHeight: 1 }}>
               ALETHEIA
@@ -329,7 +326,7 @@ function LandingPage({
             color: '#1A1A18',
             lineHeight: 0.93,
             letterSpacing: '-3px',
-            marginBottom: 28,
+            marginBottom: 12,
             userSelect: 'none',
           }}>
             EU power,<br />
@@ -337,7 +334,7 @@ function LandingPage({
           </h1>
 
           {/* Stats row — sits below the heading */}
-          <div style={{ display: 'flex', gap: 48, marginBottom: 36, pointerEvents: 'none' }}>
+          <div style={{ display: 'flex', gap: 48, marginBottom: 16, pointerEvents: 'none' }}>
             {[
               { val: '705', label: 'MEPs Tracked' },
               { val: '€1.9B+', label: 'Declared Spend' },
@@ -661,42 +658,27 @@ export default function Page() {
 
       setActiveModules(classification.modules);
       data = selectMockData(classification, query);
-      setModuleData(data);
+      setModuleData(data); // show mock panels immediately while agent fetches real data
 
-      // Non-blocking: enrich news with live GDELT headlines + EP MEPs
-      fetch('/api/live-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, classification }),
-      })
-        .then(r => r.json())
-        .then((live: { news?: { headlines: import('@/lib/types').NewsHeadline[]; sentiment: number; sentimentHistory: import('@/lib/types').SentimentPoint[] } | null }) => {
-          if (live?.news?.headlines?.length) {
-            setModuleData(prev => {
-              if (!prev.news) return prev;
-              const s = live.news!.sentiment ?? prev.news.overallSentiment;
-              return {
-                ...prev,
-                news: {
-                  ...prev.news,
-                  headlines: live.news!.headlines,
-                  overallSentiment: s,
-                  sentimentLabel: s > 0.15 ? 'POSITIVE' : s < -0.15 ? 'NEGATIVE' : 'MIXED',
-                  sentimentHistory: live.news!.sentimentHistory?.length
-                    ? live.news!.sentimentHistory
-                    : prev.news.sentimentHistory,
-                },
-              };
-            });
-          }
-        })
-        .catch(() => {}); // silently fall back to mock
-
+      // Agent fetches real data (EP API + GDELT) and writes the summary
       const sumRes = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, classification, moduleData: data }),
+        body: JSON.stringify({ query, classification }),
       });
+
+      // Real module data comes back in a header — update panels before streaming text
+      const rawModuleData = sumRes.headers.get('X-Module-Data');
+      if (rawModuleData) {
+        try {
+          const realData: ModuleData = JSON.parse(atob(rawModuleData));
+          setModuleData(prev => ({
+            voting: realData.voting ?? prev.voting,
+            lobbying: prev.lobbying, // no real API — keep mock
+            news: realData.news ?? prev.news,
+          }));
+        } catch { /* keep mock if header is malformed */ }
+      }
 
       if (!sumRes.body) {
         const text = await sumRes.text();

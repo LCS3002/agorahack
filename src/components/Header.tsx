@@ -44,31 +44,6 @@ export function Header({ onLogoClick }: { onLogoClick?: () => void }) {
         </span>
       </div>
 
-      {/* Right label */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-        <span
-          style={{
-            fontSize: '9px',
-            fontWeight: 500,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'rgba(26,26,24,0.35)',
-          }}
-        >
-          A (01)
-        </span>
-        <span
-          style={{
-            fontSize: '9px',
-            fontWeight: 400,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: 'rgba(26,26,24,0.25)',
-          }}
-        >
-          Truth, unconcealed.
-        </span>
-      </div>
     </header>
   );
 }
