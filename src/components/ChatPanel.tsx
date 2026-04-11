@@ -14,6 +14,7 @@ interface ChatPanelProps {
   onDemoQuery: (query: string) => void;
   hasQuery: boolean;
   onHistoryRestore: (item: HistoryItem) => void;
+  onClearHistory?: () => void;
 }
 
 const DEMO_QUERIES = [
@@ -193,6 +194,7 @@ export function ChatPanel({
   onDemoQuery,
   hasQuery,
   onHistoryRestore,
+  onClearHistory,
 }: ChatPanelProps) {
   const inputRef   = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -260,6 +262,38 @@ export function ChatPanel({
       {/* ── HISTORY tab ── */}
       {activeTab === 'HISTORY' && (
         <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {allHistory.length > 0 && onClearHistory && (
+            <div style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 1,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              padding: '8px 24px 6px',
+              background: 'linear-gradient(to bottom, #F0EDE8 70%, transparent)',
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && !window.confirm('Clear all history?')) return;
+                  onClearHistory();
+                }}
+                style={{
+                  background: 'none',
+                  border: '1px solid rgba(26,26,24,0.14)',
+                  cursor: 'pointer',
+                  color: 'rgba(26,26,24,0.4)',
+                  fontSize: '7.5px',
+                  padding: '3px 10px',
+                  fontFamily: 'inherit',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase' as const,
+                }}
+              >
+                Clear history
+              </button>
+            </div>
+          )}
           {allHistory.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center' }}>
               <p style={{ fontSize: '11px', color: 'rgba(26,26,24,0.3)', fontWeight: 300, lineHeight: 1.7, margin: 0 }}>
