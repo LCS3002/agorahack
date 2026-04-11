@@ -199,12 +199,26 @@ export function ChatPanel({
   const inputRef   = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'CHAT' | 'HISTORY'>('CHAT');
+  const [clearHistoryConfirmOpen, setClearHistoryConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (summaryRef.current) {
       summaryRef.current.scrollTop = summaryRef.current.scrollHeight;
     }
   }, [summary]);
+
+  useEffect(() => {
+    if (!clearHistoryConfirmOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setClearHistoryConfirmOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [clearHistoryConfirmOpen]);
+
+  useEffect(() => {
+    if (activeTab !== 'HISTORY') setClearHistoryConfirmOpen(false);
+  }, [activeTab]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -261,7 +275,102 @@ export function ChatPanel({
 
       {/* ── HISTORY tab ── */}
       {activeTab === 'HISTORY' && (
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, position: 'relative' }}>
+          {clearHistoryConfirmOpen && onClearHistory && (
+            <>
+              <div
+                role="presentation"
+                onClick={() => setClearHistoryConfirmOpen(false)}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 20,
+                  cursor: 'default',
+                  background: 'rgba(26,26,24,0.18)',
+                  backdropFilter: 'blur(6px)',
+                  WebkitBackdropFilter: 'blur(6px)',
+                }}
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="clear-history-title"
+                onClick={e => e.stopPropagation()}
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: 'min(32%, 120px)',
+                  transform: 'translateX(-50%)',
+                  zIndex: 21,
+                  width: 'calc(100% - 40px)',
+                  maxWidth: 300,
+                  padding: '22px 22px 18px',
+                  background: 'linear-gradient(165deg, #F7F4EF 0%, #EDE9E2 100%)',
+                  border: '1px solid rgba(26,26,24,0.1)',
+                  boxShadow: '0 18px 48px rgba(26,26,24,0.12), 0 0 0 1px rgba(255,255,255,0.4) inset',
+                  borderRadius: 2,
+                }}
+              >
+                <div
+                  id="clear-history-title"
+                  style={{
+                    fontSize: '9px',
+                    fontWeight: 600,
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase' as const,
+                    color: 'rgba(26,26,24,0.45)',
+                    marginBottom: '10px',
+                  }}
+                >
+                  Clear history
+                </div>
+                <p style={{ margin: '0 0 20px', fontSize: '12px', fontWeight: 300, lineHeight: 1.65, color: 'rgba(26,26,24,0.72)' }}>
+                  Remove all saved queries from this device. This cannot be undone.
+                </p>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setClearHistoryConfirmOpen(false)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(26,26,24,0.16)',
+                      cursor: 'pointer',
+                      color: 'rgba(26,26,24,0.5)',
+                      fontSize: '7.5px',
+                      padding: '8px 14px',
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase' as const,
+                      borderRadius: 1,
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClearHistory();
+                      setClearHistoryConfirmOpen(false);
+                    }}
+                    style={{
+                      background: 'rgba(26,26,24,0.88)',
+                      border: '1px solid rgba(26,26,24,0.2)',
+                      cursor: 'pointer',
+                      color: '#F5F2ED',
+                      fontSize: '7.5px',
+                      padding: '8px 14px',
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase' as const,
+                      borderRadius: 1,
+                    }}
+                  >
+                    Clear all
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
           {allHistory.length > 0 && onClearHistory && (
             <div style={{
               position: 'sticky',
@@ -274,10 +383,7 @@ export function ChatPanel({
             }}>
               <button
                 type="button"
-                onClick={() => {
-                  if (typeof window !== 'undefined' && !window.confirm('Clear all history?')) return;
-                  onClearHistory();
-                }}
+                onClick={() => setClearHistoryConfirmOpen(true)}
                 style={{
                   background: 'none',
                   border: '1px solid rgba(26,26,24,0.14)',
