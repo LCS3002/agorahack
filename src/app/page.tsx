@@ -738,6 +738,13 @@ export default function Page() {
     setShowApp(true);
   }, []);
 
+  const handleClearHistory = useCallback(() => {
+    setHistory([]);
+    try {
+      localStorage.removeItem('aletheia_history');
+    } catch { /* ignore */ }
+  }, []);
+
   const runQuery = useCallback(async (query: string) => {
     if (!query.trim() || isLoading) return;
 
@@ -859,6 +866,7 @@ export default function Page() {
                   onDemoQuery={runQuery}
                   hasQuery={hasQuery}
                   onHistoryRestore={handleHistoryRestore}
+                  onClearHistory={handleClearHistory}
                 />
               </div>
 
