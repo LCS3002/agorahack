@@ -269,10 +269,10 @@ src/
 
 Built at **AgoraHacks 2026** in 48 hours.
 
-| Contributor | |
+| Contributor | Background |
 |---|---|
-| **Lorenz** · [@LCS3002](https://github.com/LCS3002) | |
-| **Evelyn** · [@gunjyo0817](https://github.com/gunjyo0817) | |
+| **Lorenz** · [@LCS3002](https://github.com/LCS3002) | Architecture @ UCL · London |
+| **Evelyn** · [@gunjyo0817](https://github.com/gunjyo0817) | Taiwan |
 | **Milos** | |
 
 ---

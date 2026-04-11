@@ -18,6 +18,7 @@ const DEMO_QUERIES = [
   'Who lobbied against the Nature Restoration Law?',
   'How did MEPs vote on the AI Act?',
   'Is there a conflict of interest around von der Leyen and pharma?',
+  'Tell me about MEP Axel Voss',
   'Show me everything on farm subsidies',
 ];
 
