@@ -186,11 +186,11 @@ function CreamLandingPage({
 function LandingPage({
   onSubmit,
   isLoading,
-  onLaunch,
+  onGetStarted,
 }: {
   onSubmit: (q: string) => void;
   isLoading: boolean;
-  onLaunch: () => void;
+  onGetStarted: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [navScrolled, setNavScrolled] = useState(false);
@@ -234,7 +234,7 @@ function LandingPage({
     e.preventDefault();
     const val = inputRef.current?.value.trim();
     if (isLoading) return;
-    onLaunch();
+    onGetStarted();
     if (val) onSubmit(val);
   }
 
@@ -298,7 +298,7 @@ function LandingPage({
             </span>
           ))}
           <button
-            onClick={onLaunch}
+            onClick={onGetStarted}
             style={{
               fontSize: 12, fontWeight: 500, color: '#F0EDE8', background: '#1A1A18',
               padding: '9px 22px', border: 'none', cursor: 'pointer',
@@ -307,7 +307,7 @@ function LandingPage({
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.75'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
           >
-            Launch App
+            Get started
           </button>
         </div>
       </nav>
@@ -635,7 +635,7 @@ function LandingPage({
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <button
-            onClick={onLaunch}
+            onClick={onGetStarted}
             style={{
               position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 10,
               padding: '13px 28px', background: '#1A1A18', color: '#F0EDE8',
@@ -646,7 +646,7 @@ function LandingPage({
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.75'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
           >
-            Launch ALETHEIA
+            Start exploring
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
               <path d="M3 8h10M9 4l4 4-4 4"/>
             </svg>
@@ -836,7 +836,7 @@ export default function Page() {
 
       <AnimatePresence mode="wait">
         {!showApp ? (
-          <LandingPage key="dark-landing" onSubmit={runQuery} isLoading={isLoading} onLaunch={() => setShowApp(true)} />
+          <LandingPage key="dark-landing" onSubmit={runQuery} isLoading={isLoading} onGetStarted={() => setShowApp(true)} />
         ) : !hasQuery ? (
           <CreamLandingPage
             key="cream-landing"
