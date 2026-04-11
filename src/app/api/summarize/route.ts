@@ -84,17 +84,18 @@ RULES:
 - State uncertainty clearly when data is missing or thin (e.g. "No matching plenary vote was returned for this query.").
 - Keep types distinct: voting = factual outcome; lobbying = declared activity; news = how outlets frame the topic.
 - No speculation on motives, hidden deals, or unverified relationships.
-- Length: 3–5 short paragraphs max. Prefer clarity over completeness.
-- **Markdown:** use **bold** for key outcomes or labels, *italic* sparingly; optional ### subheadings if they improve scanability. No bullet lists in the main prose unless essential (short lists are OK).
+- **Length (strict):** Before the SOURCES block, write at most **~140–180 words** in **2–3 short paragraphs** (or 4 only if each is 1–2 sentences). Tight > complete: drop optional detail, merge ideas, one clause per sentence where possible.
+- Do **not** use ### subheadings unless the topic truly needs a split; default is continuous prose.
+- **Markdown:** **bold** only for the main outcome and one or two key labels; *italic* rarely. Avoid bullet lists in the main text.
 - Tone: neutral, analytical, accessible to non-experts.
 - Forbidden openers/meta: do not use "Based on the data", "The tools show", "I queried", "Here is what we found", "After fetching".
 
-Suggested flow (omit sections if no data): outcome → political dynamics → lobbying landscape (declarative only) → media/sentiment → one sentence on data limits if anything is partial.
+Compress into one flowing brief (omit whole angles if no data): outcome → dynamics → lobbying (if any) → media (if any) → half-sentence on gaps only if needed.
 
 SOURCES (required machine format — after all prose):
 - Put a blank line, then a single line containing exactly: SOURCES
 - Then a blank line, then numbered lines [1] … matching every inline citation you used.
-- 2–4 sources maximum; only cite what you actually referenced in the text.
+- **2–3 sources** preferred (4 only if you truly cited four distinct types). Only cite what you referenced.
 - When those tools returned usable data, prefer this order: [1] EP procedure / vote, [2] EU Transparency Register, [3] a news item (URL from fetch_news_data when present), [4] Wikipedia / entity background URL from get_entity_background.`;
 
 // ── Fallback (no API key) ──────────────────────────────────────────────────────
@@ -202,6 +203,7 @@ Fetch the relevant data and write your summary.${prefetchNote}`;
         system: AGENT_SYSTEM,
         userContent: userAgentContent,
         executeTool: (name, input) => executeTool(name, input),
+        maxTokens: 520,
       });
       finalText = ft;
       toolResultsAccumulator = toolResults;
@@ -256,7 +258,7 @@ Fetch the relevant data and write your summary.${prefetchNote}`;
       for (let round = 0; round < 3; round++) {
         const response = await client.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 900,
+          max_tokens: 520,
           system: AGENT_SYSTEM,
           tools,
           messages,

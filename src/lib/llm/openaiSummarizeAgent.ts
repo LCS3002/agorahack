@@ -86,7 +86,7 @@ export async function runOpenAISummarizeAgent(
         messages,
         tools,
         tool_choice: 'auto',
-        max_tokens: options.maxTokens ?? 900,
+        max_tokens: options.maxTokens ?? 520,
       }) as never,
     );
 
