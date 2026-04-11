@@ -424,7 +424,7 @@ function LandingPage({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'rgba(26,26,24,0.08)' }}>
             {([
               {
-                name: 'Yichen Hsu',
+                name: 'Yi-Chen Hsu',
                 study: 'Computer Science',
                 at: 'NTHU · exchange at TUM',
                 github: 'https://github.com/gunjyo0817',
