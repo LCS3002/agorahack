@@ -120,6 +120,8 @@ export interface NewsHeadline {
   sentiment: number; // -1 to 1
   date: string;
   lean: 'LEFT' | 'CENTRE' | 'RIGHT';
+  /** Present when headlines come from GDELT */
+  url?: string;
 }
 
 export interface SentimentPoint {
@@ -157,12 +159,21 @@ export interface ModuleDataMeta {
   news?: ModuleSliceMeta;
 }
 
+/** Clickable citation targets for the intelligence summary (built from real tool outputs). */
+export interface SummarySourceLink {
+  num: number;
+  label: string;
+  url: string;
+}
+
 // ── Aggregated module data ────────────────────────────────────────────────────
 export interface ModuleData {
   voting?: VoteResult;
   lobbying?: LobbyingResult;
   news?: NewsResult;
   meta?: ModuleDataMeta;
+  /** When set, inline [n] and the Sources block can open these URLs in a new tab */
+  summarySources?: SummarySourceLink[];
 }
 
 // ── Query history ─────────────────────────────────────────────────────────────

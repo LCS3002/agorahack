@@ -54,6 +54,7 @@ export async function fetchGdeltNewsData(
         sentiment: Math.max(-1, Math.min(1, (parseFloat(a.tone) || 0) / 40)),
         date: parseGDELTDate(a.seendate),
         lean: getNewsLean(a.domain),
+        url: a.url,
       }));
 
     const tones = articles.map(a => parseFloat(a.tone)).filter(n => !isNaN(n));

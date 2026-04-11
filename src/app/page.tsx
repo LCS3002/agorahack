@@ -854,6 +854,7 @@ export default function Page() {
                   isLoading={isLoading}
                   history={history}
                   activeModules={activeModules}
+                  summarySources={moduleData.summarySources}
                   onSubmit={runQuery}
                   onDemoQuery={runQuery}
                   hasQuery={hasQuery}
