@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 export function Header({ onLogoClick }: { onLogoClick?: () => void }) {
   return (
     <header
@@ -23,13 +21,10 @@ export function Header({ onLogoClick }: { onLogoClick?: () => void }) {
           cursor: onLogoClick ? 'pointer' : 'default',
         }}
       >
-        <Image
+        <img
           src="/logo_a.png"
           alt=""
-          width={36}
-          height={36}
-          style={{ objectFit: 'contain' }}
-          priority
+          style={{ height: '36px', width: 'auto', display: 'block', objectFit: 'contain' }}
         />
         <div style={{ width: 7, height: 7, background: '#C9A89A', flexShrink: 0 }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>

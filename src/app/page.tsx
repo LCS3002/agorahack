@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, FormEvent } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header }           from '@/components/Header';
 import { ChatPanel }        from '@/components/ChatPanel';
@@ -65,13 +64,10 @@ function CreamLandingPage({
         onClick={onBack}
         style={{ marginBottom: '52px', textAlign: 'center', cursor: onBack ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
-        <Image
+        <img
           src="/logo_a.png"
           alt=""
-          width={96}
-          height={96}
-          style={{ marginBottom: '24px', objectFit: 'contain' }}
-          priority
+          style={{ height: '96px', width: 'auto', marginBottom: '24px', objectFit: 'contain' }}
         />
         <div style={{
           fontSize: '44px',
@@ -281,7 +277,7 @@ function LandingPage({
       }}>
         {/* Logo — matches Header.tsx exactly */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Image src="/logo_a.png" alt="" width={36} height={36} style={{ objectFit: 'contain' }} priority />
+          <img src="/logo_a.png" alt="" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
           <div style={{ width: 7, height: 7, background: '#C9A89A' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span style={{ fontSize: 20, fontWeight: 200, letterSpacing: '0.18em', color: '#1A1A18', lineHeight: 1 }}>
@@ -997,7 +993,7 @@ export default function Page() {
                       color: 'rgba(26,26,24,0.35)',
                     }}
                   >
-                    {mockBannerCollapsed ? '▲ mock data' : '▼ hide'}
+                    {mockBannerCollapsed ? '+ data notice' : 'hide'}
                   </button>
                 </div>
               );
