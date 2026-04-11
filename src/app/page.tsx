@@ -10,7 +10,6 @@ import { VotingExpanded }   from '@/components/expanded/VotingExpanded';
 import { LobbyingExpanded } from '@/components/expanded/LobbyingExpanded';
 import { NewsExpanded }     from '@/components/expanded/NewsExpanded';
 import { ThreeBackground }  from '@/components/ThreeBackground';
-import { ThreeParticleCanvas } from '@/components/ThreeParticleCanvas';
 import type {
   ClassificationResult,
   ModuleData,
@@ -194,7 +193,6 @@ function LandingPage({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [navScrolled, setNavScrolled] = useState(false);
-  const [moduleCardHovered, setModuleCardHovered] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const numbersRef = useRef<HTMLDivElement>(null);
 
@@ -321,7 +319,7 @@ function LandingPage({
         {/* Hero content pinned to bottom — single flow, no overlapping abs positioned children */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          padding: '0 48px 44px',
+          padding: '0 48px 20px',
           display: 'flex', flexDirection: 'column', gap: 0,
         }}>
           <h1 style={{
@@ -411,7 +409,7 @@ function LandingPage({
       </div>
 
       {/* ── Intelligence Modules ── */}
-      <section style={{ position: 'relative', zIndex: 10, background: '#F0EDE8', padding: '160px 48px 0' }}>
+      <section style={{ position: 'relative', zIndex: 10, background: '#F0EDE8', padding: '120px 48px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(26,26,24,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 24 }}>
             Intelligence Modules
@@ -463,8 +461,8 @@ function LandingPage({
               <div
                 key={card.title}
                 style={{ background: '#F0EDE8', padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 16, transition: 'background 0.3s ease', cursor: 'default' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(26,26,24,0.025)'; setModuleCardHovered(true); }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F0EDE8'; setModuleCardHovered(false); }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(26,26,24,0.025)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F0EDE8'; }}
               >
                 <div style={{ width: 40, height: 40, border: '1px solid rgba(26,26,24,0.12)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {card.icon}
@@ -476,15 +474,10 @@ function LandingPage({
           </div>
 
         </div>
-
-        {/* Research canvas — full-bleed, three-column particle formations under the cards */}
-        <div style={{ borderTop: '1px solid rgba(26,26,24,0.08)', overflow: 'hidden', margin: '64px -48px 0' }}>
-          <ThreeParticleCanvas height={300} cardHovered={moduleCardHovered} />
-        </div>
       </section>
 
       {/* ── How it works ── */}
-      <section style={{ position: 'relative', zIndex: 10, background: '#F0EDE8', padding: '120px 48px 0' }}>
+      <section style={{ position: 'relative', zIndex: 10, background: '#F0EDE8', borderTop: '1px solid rgba(26,26,24,0.08)', padding: '120px 48px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(26,26,24,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 24 }}>
             How It Works
@@ -493,31 +486,30 @@ function LandingPage({
             fontFamily: '"Instrument Serif", Georgia, serif',
             fontSize: 'clamp(36px, 5.5vw, 72px)',
             fontWeight: 400, color: '#1A1A18', lineHeight: 1.05,
-            letterSpacing: '-1.5px', maxWidth: 700, marginBottom: 48,
+            letterSpacing: '-1.5px', maxWidth: 700, marginBottom: 64,
           }}>
             Three steps <span style={{ color: 'rgba(26,26,24,0.28)' }}>to clarity</span>
           </h2>
-          <div style={{ display: 'flex', gap: 48 }}>
+          <div style={{ display: 'flex', gap: 0, borderTop: '1px solid rgba(26,26,24,0.08)' }}>
             {[
               { num: '01', title: 'Ask in plain language', desc: 'Type any question about EU politics — a bill, a MEP, a lobbying org, or a topic. No structured query syntax required.' },
               { num: '02', title: 'AI classifies and routes', desc: 'Claude Haiku identifies which intelligence modules are relevant and extracts entities and timeframe from your question.' },
               { num: '03', title: 'Get cited analysis', desc: 'Claude Sonnet synthesises data across Voting, Lobbying, and News modules into a 3–4 sentence plain-language summary with numbered citations.' },
-            ].map(item => (
-              <div key={item.num} style={{ flex: 1, display: 'flex', gap: 20, padding: 20 }}>
-                <div style={{ fontFamily: '"Instrument Serif", Georgia, serif', fontSize: 32, color: 'rgba(26,26,24,0.12)', lineHeight: 1, flexShrink: 0, width: 40 }}>{item.num}</div>
+            ].map((item, i) => (
+              <div key={item.num} style={{ flex: 1, display: 'flex', gap: 20, padding: '48px 40px 0', borderLeft: i > 0 ? '1px solid rgba(26,26,24,0.08)' : 'none' }}>
+                <div style={{ fontFamily: '"Instrument Serif", Georgia, serif', fontSize: 28, color: 'rgba(26,26,24,0.12)', lineHeight: 1, flexShrink: 0, width: 36 }}>{item.num}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 16, fontWeight: 500, color: 'rgba(26,26,24,0.85)' }}>{item.title}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: 'rgba(26,26,24,0.85)' }}>{item.title}</div>
                   <div style={{ fontSize: 13, fontWeight: 300, color: 'rgba(26,26,24,0.45)', lineHeight: 1.7 }}>{item.desc}</div>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ height: 1, background: 'rgba(26,26,24,0.08)', margin: '80px 0 0' }} />
         </div>
       </section>
 
       {/* ── Numbers ── */}
-      <section style={{ position: 'relative', zIndex: 10, background: '#F0EDE8', padding: '160px 48px', overflow: 'hidden' }}>
+      <section style={{ position: 'relative', zIndex: 10, background: '#F0EDE8', borderTop: '1px solid rgba(26,26,24,0.08)', padding: '120px 48px', overflow: 'hidden' }}>
         <div ref={numbersRef} style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(26,26,24,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 24 }}>
             By The Numbers
