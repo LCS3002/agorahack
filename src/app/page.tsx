@@ -424,13 +424,6 @@ function LandingPage({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'rgba(26,26,24,0.08)' }}>
             {([
               {
-                name: 'Lorenz Huber',
-                study: 'Architecture',
-                at: 'UCL · London',
-                github: 'https://github.com/LCS3002',
-                linkedin: 'https://www.linkedin.com/in/huberlorenz',
-              },
-              {
                 name: 'Yichen Hsu',
                 study: 'Computer Science',
                 at: 'NTHU · exchange at TUM',
@@ -443,6 +436,13 @@ function LandingPage({
                 at: 'TU Vienna',
                 github: null,
                 linkedin: 'https://www.linkedin.com/in/milo%C5%A1-preradovi%C4%87-9a0329387/',
+              },
+              {
+                name: 'Lorenz Huber',
+                study: 'Architecture',
+                at: 'UCL · London',
+                github: 'https://github.com/LCS3002',
+                linkedin: 'https://www.linkedin.com/in/huberlorenz',
               },
             ] as { name: string; study: string; at: string; github: string | null; linkedin: string }[]).map((p) => (
               <div key={p.name} style={{ background: '#F0EDE8', padding: '40px 40px 36px' }}>
