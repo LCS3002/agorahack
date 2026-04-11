@@ -6,15 +6,7 @@
 █   █  ███  █████    █    █   █  █████  █████  █   █
 ```
 
-```
-            · · · · · · · · · · · · ·
-          · · █ █ █ █ █ █ █ █ █ █ · ·
-        · · █ █ █ █ █ █ █ █ █ █ █ █ · ·
-       · · █ █ █ █ █ █ · · · █ █ █ █ · ·
-        · · █ █ █ · · · · · · █ █ █ · ·
-          · · · · · · · · · · · · · ·
-              · · · · · · · · · · ·
-```
+![EU Parliament Hemicycle — 705 seats](./public/parliament.svg)
 
 # ALETHEIA · EU Political Intelligence
 
