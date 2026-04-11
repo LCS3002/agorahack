@@ -629,11 +629,42 @@ export default function Page() {
   const [isLoading,      setIsLoading]      = useState(false);
   const [activeModules,  setActiveModules]  = useState<ModuleType[]>([]);
   const [moduleData,     setModuleData]     = useState<ModuleData>({});
+  const [moduleContext,  setModuleContext]  = useState<Partial<Record<ModuleType, string>>>({});
   const [timing,         setTiming]         = useState<number | null>(null);
   const [history,        setHistory]        = useState<HistoryItem[]>([]);
   const [hasQuery,       setHasQuery]       = useState(false);
   const [showApp,        setShowApp]        = useState(false);
   const [expandedModule, setExpandedModule] = useState<ModuleType | null>(null);
+
+  // ── localStorage persistence ──────────────────────────────────────────────
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('aletheia_history');
+      if (raw) {
+        const parsed: HistoryItem[] = JSON.parse(raw);
+        setHistory(parsed.slice(0, 50));
+      }
+    } catch { /* ignore parse/quota errors */ }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('aletheia_history', JSON.stringify(history.slice(0, 50)));
+    } catch { /* ignore QuotaExceededError */ }
+  }, [history]);
+
+  // ── History restore ────────────────────────────────────────────────────────
+  const handleHistoryRestore = useCallback((item: HistoryItem) => {
+    setSummary(item.summary);
+    setActiveModules(item.modules);
+    setModuleData(item.moduleData ?? {});
+    setModuleContext(item.classification?.moduleContext ?? {});
+    setTiming(item.timing);
+    setHasQuery(true);
+    setIsLoading(false);
+    setExpandedModule(null);
+    setShowApp(true);
+  }, []);
 
   const runQuery = useCallback(async (query: string) => {
     if (!query.trim() || isLoading) return;
@@ -644,10 +675,11 @@ export default function Page() {
     setSummary('');
     setActiveModules([]);
     setModuleData({});
+    setModuleContext({});
     setTiming(null);
 
     let classification: ClassificationResult;
-    let data: ModuleData;
+    let finalData: ModuleData;
 
     try {
       const classRes = await fetch('/api/classify', {
@@ -658,8 +690,9 @@ export default function Page() {
       classification = await classRes.json();
 
       setActiveModules(classification.modules);
-      data = selectMockData(classification, query);
-      setModuleData(data); // show mock panels immediately while agent fetches real data
+      setModuleContext(classification.moduleContext ?? {});
+      finalData = selectMockData(classification, query);
+      setModuleData(finalData); // show mock panels immediately while agent fetches real data
 
       // Agent fetches real data (EP API + GDELT) and writes the summary
       const sumRes = await fetch('/api/summarize', {
@@ -673,6 +706,7 @@ export default function Page() {
       if (rawModuleData) {
         try {
           const realData: ModuleData = JSON.parse(atob(rawModuleData));
+          finalData = realData; // capture for history
           setModuleData(realData);
         } catch { /* keep mock if header is malformed */ }
       }
@@ -683,7 +717,11 @@ export default function Page() {
         setIsLoading(false);
         const elapsed = Date.now() - t0;
         setTiming(elapsed);
-        setHistory(prev => [{ id: crypto.randomUUID(), query, summary: text, modules: classification.modules, timestamp: Date.now(), timing: elapsed }, ...prev]);
+        setHistory(prev => [{
+          id: crypto.randomUUID(), query, summary: text,
+          modules: classification.modules, timestamp: Date.now(),
+          timing: elapsed, moduleData: finalData, classification,
+        }, ...prev]);
         return;
       }
 
@@ -700,7 +738,11 @@ export default function Page() {
       const elapsed = Date.now() - t0;
       setTiming(elapsed);
       setIsLoading(false);
-      setHistory(prev => [{ id: crypto.randomUUID(), query, summary: full, modules: classification.modules, timestamp: Date.now(), timing: elapsed }, ...prev]);
+      setHistory(prev => [{
+        id: crypto.randomUUID(), query, summary: full,
+        modules: classification.modules, timestamp: Date.now(),
+        timing: elapsed, moduleData: finalData, classification,
+      }, ...prev]);
 
     } catch (err) {
       console.error('Query error:', err);
@@ -731,18 +773,19 @@ export default function Page() {
             transition={{ duration: 0.28 }}
             style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}
           >
-            <Header onLogoClick={() => { setShowApp(false); setHasQuery(false); setSummary(''); setActiveModules([]); setModuleData({}); setTiming(null); }} />
+            <Header onLogoClick={() => { setShowApp(false); setHasQuery(false); setSummary(''); setActiveModules([]); setModuleData({}); setModuleContext({}); setTiming(null); }} />
 
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
               <div style={{ width: '300px', minWidth: '260px', maxWidth: '340px', flexShrink: 0, overflow: 'hidden' }}>
                 <ChatPanel
                   summary={summary}
                   isLoading={isLoading}
-                  history={history.slice(1)}
+                  history={history}
                   activeModules={activeModules}
                   onSubmit={runQuery}
                   onDemoQuery={runQuery}
                   hasQuery={hasQuery}
+                  onHistoryRestore={handleHistoryRestore}
                 />
               </div>
 
@@ -767,6 +810,7 @@ export default function Page() {
                         activeModules={activeModules}
                         isLoading={isLoading}
                         onExpand={setExpandedModule}
+                        moduleContext={moduleContext}
                       />
                     </motion.div>
                   )}

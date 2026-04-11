@@ -11,6 +11,7 @@ interface DashboardPanelProps {
   activeModules: ModuleType[];
   isLoading: boolean;
   onExpand?: (module: ModuleType) => void;
+  moduleContext?: Partial<Record<ModuleType, string>>;
 }
 
 // ── Shimmer skeleton ──────────────────────────────────────────────────────────
@@ -217,7 +218,7 @@ function Slot({ id, isLoading, isActive, skeletonRows = 5, emptyHint, children }
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function DashboardPanel({ moduleData, activeModules, isLoading, onExpand }: DashboardPanelProps) {
+export function DashboardPanel({ moduleData, activeModules, isLoading, onExpand, moduleContext }: DashboardPanelProps) {
   const votingActive   = activeModules.includes('VOTING');
   const lobbyingActive = activeModules.includes('LOBBYING');
   const newsActive     = activeModules.includes('NEWS');
@@ -251,7 +252,7 @@ export function DashboardPanel({ moduleData, activeModules, isLoading, onExpand 
           isLoading={isLoading}
           isActive={votingActive}
           skeletonRows={8}
-          emptyHint="Ask about a vote, MEP, or legislation to see roll-call records and party positions."
+          emptyHint={moduleContext?.['VOTING'] ?? "Ask about a vote, MEP, or legislation to see roll-call records and party positions."}
         >
           {moduleData.voting && <VotingCard data={moduleData.voting} />}
         </Slot>
@@ -271,7 +272,7 @@ export function DashboardPanel({ moduleData, activeModules, isLoading, onExpand 
           isLoading={isLoading}
           isActive={lobbyingActive}
           skeletonRows={5}
-          emptyHint="Ask about an industry, regulation, or person to surface lobbying spend and conflict flags."
+          emptyHint={moduleContext?.['LOBBYING'] ?? "Ask about an industry, regulation, or person to surface lobbying spend and conflict flags."}
         >
           {moduleData.lobbying && <LobbyingCard data={moduleData.lobbying} />}
         </Slot>
@@ -291,7 +292,7 @@ export function DashboardPanel({ moduleData, activeModules, isLoading, onExpand 
           isLoading={isLoading}
           isActive={newsActive}
           skeletonRows={4}
-          emptyHint="Ask about a topic or person to see media sentiment trends and cross-outlet framing analysis."
+          emptyHint={moduleContext?.['NEWS'] ?? "Ask about a topic or person to see media sentiment trends and cross-outlet framing analysis."}
         >
           {moduleData.news && <NewsCard data={moduleData.news} />}
         </Slot>

@@ -1,10 +1,18 @@
-# ALETHEIA
+```
+  ▄▄▄  ▄▄▄  ▄▄▄▄▄  ▄  ▄  ▄▄▄  ▄▄▄  ▄▄▄
+ █   █ █  █ █      █  █ █   █  ┐  █ █  █
+ █▄▄▄█ █  █ █▄▄▄   █▀▀█ █▄▄▄█  ▄▄▄▀ █▄▄█
+ █   █ █  █ █      █  █ █   █ ▀     █   █
+ █   █ █▄▄█ █▄▄▄▄▄ █  █ █   █  ▄▄▄▄▄█   █
+```
+
+# ALETHEIA · EU Political Intelligence
+
+> *"Truth, unconcealed."* — from the Greek ἀλήθεια
 
 **EU votes, money, and influence — in plain language.**
 
-Aletheia is a political transparency intelligence platform for the European Union. Ask a question in natural language; the system classifies your intent, pulls structured data across three intelligence modules, and returns a cited analysis — surfacing who voted how, who spent what lobbying them, and how the media framed it.
-
-The name comes from the Greek concept of unconcealment — truth not as assertion, but as revelation.
+ALETHEIA is an AI-powered political transparency platform for the European Union. Ask any question in natural language; the system classifies your intent, pulls structured data across three intelligence modules, and streams a cited analysis — surfacing who voted how, who spent what lobbying them, and how the media framed it.
 
 ---
 
@@ -12,80 +20,135 @@ The name comes from the Greek concept of unconcealment — truth not as assertio
 
 EU legislative processes generate enormous amounts of public data — roll-call votes, transparency register filings, committee records — but it is scattered, technical, and practically inaccessible to most citizens and journalists. Lobbying influence is declared but never contextualised. Conflicts of interest exist in the open, but require hours of cross-referencing to surface.
 
-Aletheia collapses that gap.
+**ALETHEIA collapses that gap.**
 
 ---
 
-## What It Does
+## Demo
 
-Type any question about EU politics. The system does the rest.
+```
+"Who lobbied against the Nature Restoration Law?"
+"How did MEPs vote on the AI Act?"
+"Is there a conflict of interest around von der Leyen and pharma?"
+"Tell me about MEP Axel Voss"
+"Show me everything on farm subsidies"
+```
 
-**Examples:**
-- *Who lobbied against the Nature Restoration Law?*
-- *How did MEPs vote on the AI Act?*
-- *Is there a conflict of interest around von der Leyen and pharma?*
-- *Show me everything on farm subsidies*
-
-The AI classifies the query, activates the relevant intelligence modules, and streams a plain-language analysis with inline citations. The dashboard surfaces the underlying data simultaneously.
+The AI classifies each query, activates only the relevant intelligence modules, and streams a plain-language analysis with inline citations. The dashboard surfaces underlying data simultaneously — with full restoration of any previous query from the conversation history.
 
 ---
 
 ## Intelligence Modules
 
+The dashboard always shows all three modules. Data loads only when contextually relevant — a policy query activates everything; a profile query focuses on voting and news, with lobbying gated behind a specific legislative context.
+
 ### Voting & Parliament
 Roll-call records, party breakdowns, and MEP positions — visualised as an interactive EU Parliament hemicycle.
 
-**Drill-down navigation:**
-- Click any party in the breakdown table → party view with vote stats and all key MEPs
-- Click any MEP with a profile → full profile view
-  - Biography, committees, voting record across legislation
-  - Lobby connection network graph — radial SVG showing which organisations met with that MEP, meeting counts (node size), declared spend, and sector
+- Full party breakdown table with vote distribution
+- Key MEP positions with roles and notable positions
+- Drill-down: party → individual MEP profiles
+- MEP profile: biography, committees, past votes, lobby connection network graph (radial SVG — meeting counts, declared spend, sector)
 
 ### Lobbying & Money
-Declared spend from the EU Transparency Register, ranked by organisation. Sector filter chips, spend bars, and a meeting-intensity score (meetings per €1M declared — high values flag potential undeclared spend or disproportionate access).
+Declared spend from the EU Transparency Register (17,081 registered organisations), ranked by organisation.
 
-Conflict flags cross-reference lobbying access with voting record: which MEPs held documented meetings with top-spending organisations before voting for or against the relevant legislation.
+- Top actors by declared spend with sector and people involved
+- Heuristic conflict signals: commercial actor + policy overlap, high spend band, multiple aligned registrants
+- Period and financial year attribution
+- Direct link to EU Transparency Register
 
 ### News & Sentiment
-30-day sentiment trend (AreaChart), overall sentiment score, and framing divergence — how left, centre, and right-leaning outlets covered the same topic, quoted directly. Filter headlines by political lean. Polarisation Index: the absolute gap between average left and right outlet sentiment.
+Real-time media sentiment via GDELT API across 30 days.
+
+- Sentiment trend chart (AreaChart) with per-day scoring
+- Headlines filtered by political lean (LEFT · CENTRE · RIGHT)
+- Framing divergence: how left, centre, and right-leaning outlets covered the same topic
+- Polarisation Index: absolute gap between average left and right outlet sentiment
 
 ---
 
-## AI Agent
+## AI Agent Architecture
 
-**Classification** — `claude-haiku-4-5` classifies each query into modules (VOTING, LOBBYING, NEWS). Legislation and person queries always activate all three. Fast, cheap, structured JSON output.
+```
+User query
+    │
+    ▼
+┌─────────────────────────────────────────────┐
+│  /api/classify  (claude-haiku-4-5)          │
+│  Fast JSON routing — modules, entities,     │
+│  timeframe, query_type, moduleContext       │
+└─────────────┬───────────────────────────────┘
+              │  ClassificationResult
+              ▼
+┌─────────────────────────────────────────────┐
+│  /api/summarize  (claude-sonnet-4-6)        │
+│  Tool-use agentic loop — max 3 rounds       │
+│                                             │
+│  Tools:                                     │
+│  ├── fetch_voting_data  → EP Open Data API  │
+│  ├── fetch_news_data    → GDELT API         │
+│  └── get_entity_background → Wikipedia     │
+│                                             │
+│  + EU Transparency Register search         │
+│    (17k orgs, keyword-scored, cached)      │
+└─────────────┬───────────────────────────────┘
+              │  ModuleData + streamed text
+              ▼
+┌─────────────────────────────────────────────┐
+│  mergeModuleData()                          │
+│  Overlays live tool results onto scenario  │
+│  fixtures — hybrid provenance per slice    │
+└─────────────┬───────────────────────────────┘
+              │
+              ▼
+         Dashboard + streamed summary
+```
 
-**Summarisation** — `claude-sonnet-4-6` streams a 3–4 sentence plain-language analysis. Writes like The Economist: names names, cites figures, flags conflicts of interest without hedging. Inline `[n]` citation markers reference specific data points.
+**Classification** (`claude-haiku-4-5`) — routes each query to the relevant modules. Policy queries activate all three. Person queries (no specific bill) activate Voting + News only, with a contextual hint in the Lobbying panel explaining the scope limitation. Fast, cheap, structured JSON output.
 
-**Citations** — Each summary ends with a numbered sources list: EP roll-call vote records (date + reference number), EU Transparency Register entries (organisation, declared spend, period), and news headlines (outlet + date). Rendered as formatted footnotes in the chat panel.
+**Summarisation** (`claude-sonnet-4-6`) — tool-use loop fetches real data then streams a 3–4 sentence analysis. Writes like The Economist: names names, cites figures, flags conflicts of interest without hedging. Inline `[n]` citation markers reference specific data points.
+
+**Fallback** — with no API key, the system still fetches real EP Open Data and GDELT results, merges them with fixture data, and generates a templated summary. Every layer degrades gracefully.
+
+---
+
+## Conversation Intelligence
+
+ALETHEIA tracks every query in a persistent conversation history:
+
+- **CHAT tab** — active summary + prior queries in reverse order
+- **HISTORY tab** — full timeline grouped by date (Today / Yesterday / date)
+- **One-click restore** — click any past query to restore the complete dashboard state without a new API call
+- **localStorage persistence** — history survives page refreshes (capped at 50 entries)
 
 ---
 
 ## Interface
 
-**Landing page** — Minimal. Logo, tagline, and a single input box. No clutter.
+**Landing page** — Marketing page with Three.js animated blob, stats (705 MEPs, €1.9B+ declared spend, 27 member states), feature overview, and a hero search bar.
 
-**Dashboard** — Three-panel bento grid. Voting spans the full left column; Lobbying and News split the right. Each panel has a live status indicator and an expand button.
+**Cream input** — Minimal Claude-style query box. Wordmark, tagline, single input.
 
-**Expanded views** — Clicking expand fills the entire dashboard area with the full interactive version of that module. No modal overlay — the expanded view replaces the dashboard in-place with a smooth slide transition. Collapse returns to the bento grid.
+**Dashboard** — Three-panel bento grid. Voting spans the full left column; Lobbying and News split the right. Each panel has a live status dot and an expand button. Inactive modules (from context-aware routing) show a targeted empty state explaining what query would activate them.
 
-**Breadcrumb navigation** — Drill-down views track position: `Voting & Parliament › EPP › Herbert Dorfmann`. Back button walks up one level.
+**Expanded views** — Clicking expand fills the entire dashboard with the full interactive version of that module. No modal overlay — replaces the bento grid in-place with a slide transition. Collapse returns to the grid.
 
 ---
 
-## Design
+## Design System
 
-Warm, typographic, and deliberately calm. EU politics is already loud enough.
+Warm, typographic, deliberately calm. EU politics is already loud enough.
 
-| Token | Value |
-|---|---|
-| Background | `#F0EDE8` (cream) |
-| Ink | `#1A1A18` |
-| Conflict / negative | `#C9A89A` (rose) |
-| Neutral | `#8A8882` (warm grey) |
-| Sand | `#D4C4A8` |
+| Token | Value | Use |
+|---|---|---|
+| Background | `#F0EDE8` | Cream — all surfaces |
+| Ink | `#1A1A18` | Primary text, dark elements |
+| Accent | `#C9A89A` | Conflict / negative / citations |
+| Neutral | `#8A8882` | News module, secondary text |
+| Sand | `#D4C4A8` | Loading states |
 
-All layout in CSS Grid. All styling inline — no Tailwind in production components. Framer Motion for page and panel transitions. Recharts for sentiment trend. Pure SVG for the hemicycle and network graph.
+All layout in CSS Grid. Inline styles only — no Tailwind. Framer Motion for transitions. Recharts for sentiment trend. Pure SVG for hemicycle and lobby network graph. Three.js + OrbitControls for the landing blob.
 
 ---
 
@@ -93,13 +156,15 @@ All layout in CSS Grid. All styling inline — no Tailwind in production compone
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
+| Framework | Next.js 15 (App Router, Turbopack) |
 | Language | TypeScript (strict) |
-| AI | Anthropic SDK — Haiku (classify) + Sonnet (summarise) |
+| AI | Anthropic SDK — Haiku (classify) + Sonnet (summarise, tool-use) |
 | Animation | Framer Motion |
 | Charts | Recharts |
+| 3D | Three.js + EffectComposer |
 | Graphs | Pure SVG (hemicycle, network) |
 | Styling | Inline styles + CSS custom properties |
+| Data | EP Open Data API · GDELT API · Wikipedia · EU Transparency Register |
 
 ---
 
@@ -112,24 +177,32 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-To enable the AI agent, set your Anthropic API key:
+**Enable the AI agent:**
 
 ```bash
 # .env.local
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Without a key, the system falls back to pre-written summaries and simulated streaming. All dashboard data is mock data modelled on real EU legislative records.
+Without a key, the system falls back to pre-written summaries and simulated streaming. All dashboard data is partially live (EP API + GDELT) with fixture fallbacks.
+
+**Rebuild the Transparency Register snapshot** (optional — full ODP export):
+
+```bash
+npm run data:transparency
+```
 
 ---
 
-## Data Sources (modelled)
+## Data Sources
 
-- **EP roll-call votes** — European Parliament voting records (europarl.europa.eu)
-- **EU Transparency Register** — Declared lobbying spend and parliamentary access meetings (ec.europa.eu/transparencyregister)
-- **Media sentiment** — Politico EU, EURACTIV, Financial Times, The Guardian, Der Spiegel, Le Monde, and others
-
-Current mock datasets cover: Nature Restoration Law (2023), EU AI Act (2024), CSRD (2022), CAP Reform (2021), and EU pharmaceutical lobbying.
+| Source | Data | Coverage |
+|---|---|---|
+| [EP Open Data](https://data.europarl.europa.eu) | Plenary documents, roll-call votes | Live |
+| [EU Transparency Register](https://ec.europa.eu/transparencyregister) | Declared lobbying spend, 17,081 orgs | Snapshot (ODP export) |
+| [GDELT Project](https://gdeltproject.org) | News headlines, sentiment, outlet lean | Live (30-day) |
+| [Wikipedia](https://wikipedia.org) | Entity background | Live |
+| Scenario fixtures | Nature Restoration Law, AI Act, CSRD, CAP Reform, Pharma | Curated |
 
 ---
 
@@ -138,29 +211,62 @@ Current mock datasets cover: Nature Restoration Law (2023), EU AI Act (2024), CS
 ```
 src/
   app/
-    page.tsx                  # Landing page + dashboard shell
+    page.tsx                  # Landing page + dashboard shell + state
     api/
-      classify/route.ts       # Haiku classification endpoint
-      summarize/route.ts      # Sonnet streaming summary endpoint
+      classify/route.ts       # Haiku classification — context-aware module routing
+      summarize/route.ts      # Sonnet agentic loop — tool-use + streaming
   components/
     Header.tsx
-    ChatPanel.tsx             # Streaming summary + citation renderer
-    DashboardPanel.tsx        # Bento grid with expand controls
-    StatusBar.tsx
+    ChatPanel.tsx             # CHAT/HISTORY tabs + summary + conversation timeline
+    DashboardPanel.tsx        # Bento grid + context-aware empty states
+    StatusBar.tsx             # Module indicators + provenance + timing
     cards/
-      VotingCard.tsx          # Compact hemicycle card
-      LobbyingCard.tsx        # Compact spend/conflict card
-      NewsCard.tsx            # Compact sentiment card
+      VotingCard.tsx          # Hemicycle compact card
+      LobbyingCard.tsx        # Spend + conflict signals card
+      NewsCard.tsx            # Sentiment trend card
     expanded/
       VotingExpanded.tsx      # Full hemicycle + party/MEP drill-down + network graph
       LobbyingExpanded.tsx    # Full org list + conflict analysis
       NewsExpanded.tsx        # Full sentiment chart + lean filter + polarisation index
   lib/
     types.ts                  # All shared TypeScript interfaces
-    mockData.ts               # Voting, lobbying, news datasets + MEP profiles
-    mockDataSelector.ts       # Query-to-dataset routing logic
+    mockData.ts               # Scenario datasets + MEP profiles
+    mockDataSelector.ts       # Query-to-dataset routing
+    pipeline/
+      mergeModuleData.ts      # Live tool results + fixture merge with provenance
+    sources/
+      parliament.ts           # EP Open Data API client
+      gdelt.ts                # GDELT news API client
+      wikipedia.ts            # Wikipedia entity lookup
+    transparencyRegister/
+      search.ts               # Keyword-scored register search
+      loadRegister.ts         # JSON snapshot loader + in-memory cache
+      keywords.ts             # Search term extraction
+  data/
+    transparency-register.json       # Full ODP snapshot (17,081 orgs)
+    transparency-register-sample.json # Bundled fallback sample
 ```
 
 ---
 
-*Built for AgoraHacks · April 2026*
+## Contributors
+
+Built at **AgoraHacks 2026** in 48 hours.
+
+| | Contributor | Role |
+|---|---|---|
+| 🏗️ | **Lorenz** ([@LCS3002](https://github.com/LCS3002)) | Architecture, UI/UX, AI agent orchestration, Three.js landing |
+| 🔬 | **Yichen** ([@yichen](https://github.com/yichen)) | Data pipeline, EU Transparency Register integration, provenance system |
+| 🎯 | **Evelyn** | Product, research, narrative design |
+
+---
+
+## Why ALETHEIA
+
+EU institutions publish more raw data than almost any other political body in the world. But raw data is not accountability. ALETHEIA is a demonstration that with modern AI tooling, the gap between *data exists* and *citizens can use it* can be closed in a weekend.
+
+The name comes from the Greek ἀλήθεια — truth as unconcealment, the idea that knowledge is not created but revealed by removing what obscures it. That is exactly what we are doing: the votes, the spend, the coverage were always there. We just removed the friction.
+
+---
+
+*Built for AgoraHacks · April 2026 · Truth, unconcealed.*

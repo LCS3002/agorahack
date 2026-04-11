@@ -8,6 +8,8 @@ export interface ClassificationResult {
   entities: string[];
   timeframe: string;
   query_type: QueryType;
+  /** Context hints for modules NOT in the active modules array — shown in dashboard empty states */
+  moduleContext?: Partial<Record<ModuleType, string>>;
 }
 
 // ── VOTING module ─────────────────────────────────────────────────────────────
@@ -165,4 +167,8 @@ export interface HistoryItem {
   modules: ModuleType[];
   timestamp: number;
   timing: number; // ms
+  /** Full module data snapshot — enables dashboard restoration without a new API call */
+  moduleData?: ModuleData;
+  /** Classification result — restores moduleContext and active modules */
+  classification?: ClassificationResult;
 }
