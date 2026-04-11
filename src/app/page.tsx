@@ -432,7 +432,7 @@ function LandingPage({
               },
               {
                 name: 'Miloš Preradović',
-                study: 'Wirtschaftsingenieurwesen\nMaschinenbau',
+                study: 'Economics and Engineering',
                 at: 'TU Vienna',
                 github: 'https://github.com/prmilos',
                 linkedin: 'https://www.linkedin.com/in/milo%C5%A1-preradovi%C4%87-9a0329387/',
