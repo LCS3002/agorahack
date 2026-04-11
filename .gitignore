@@ -42,4 +42,4 @@ next-env.d.ts
 .gstack/
 
 # Generated: node scripts/convert-transparency-register.cjs
-src/data/transparency-register.json
+src/data/ODP10-04-2026.xls
