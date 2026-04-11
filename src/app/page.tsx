@@ -194,6 +194,7 @@ function LandingPage({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [navScrolled, setNavScrolled] = useState(false);
+  const [moduleCardHovered, setModuleCardHovered] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const numbersRef = useRef<HTMLDivElement>(null);
 
@@ -323,8 +324,22 @@ function LandingPage({
           padding: '0 48px 44px',
           display: 'flex', flexDirection: 'column', gap: 0,
         }}>
-          {/* Stats row — sits above the heading, no overlap */}
-          <div style={{ display: 'flex', gap: 48, marginBottom: 28, pointerEvents: 'none' }}>
+          <h1 style={{
+            fontFamily: '"Instrument Serif", Georgia, "Times New Roman", serif',
+            fontSize: 'clamp(56px, 11vw, 140px)',
+            fontWeight: 400,
+            color: '#1A1A18',
+            lineHeight: 0.93,
+            letterSpacing: '-3px',
+            marginBottom: 28,
+            userSelect: 'none',
+          }}>
+            EU power,<br />
+            <span style={{ color: 'rgba(26,26,24,0.28)' }}>in plain language.</span>
+          </h1>
+
+          {/* Stats row — sits below the heading */}
+          <div style={{ display: 'flex', gap: 48, marginBottom: 36, pointerEvents: 'none' }}>
             {[
               { val: '705', label: 'MEPs Tracked' },
               { val: '€1.9B+', label: 'Declared Spend' },
@@ -336,20 +351,6 @@ function LandingPage({
               </div>
             ))}
           </div>
-
-          <h1 style={{
-            fontFamily: '"Instrument Serif", Georgia, "Times New Roman", serif',
-            fontSize: 'clamp(56px, 11vw, 140px)',
-            fontWeight: 400,
-            color: '#1A1A18',
-            lineHeight: 0.93,
-            letterSpacing: '-3px',
-            marginBottom: 32,
-            userSelect: 'none',
-          }}>
-            EU power,<br />
-            <span style={{ color: 'rgba(26,26,24,0.28)' }}>in plain language.</span>
-          </h1>
 
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 40 }}>
             {/* Description */}
@@ -410,7 +411,7 @@ function LandingPage({
       </div>
 
       {/* ── Intelligence Modules ── */}
-      <section style={{ position: 'relative', zIndex: 10, background: '#F0EDE8', padding: '160px 48px 120px' }}>
+      <section style={{ position: 'relative', zIndex: 10, background: '#F0EDE8', padding: '160px 48px 0' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div style={{ fontSize: 10, fontWeight: 500, color: 'rgba(26,26,24,0.35)', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 24 }}>
             Intelligence Modules
@@ -462,8 +463,8 @@ function LandingPage({
               <div
                 key={card.title}
                 style={{ background: '#F0EDE8', padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 16, transition: 'background 0.3s ease', cursor: 'default' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(26,26,24,0.025)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F0EDE8'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(26,26,24,0.025)'; setModuleCardHovered(true); }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F0EDE8'; setModuleCardHovered(false); }}
               >
                 <div style={{ width: 40, height: 40, border: '1px solid rgba(26,26,24,0.12)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {card.icon}
@@ -474,10 +475,11 @@ function LandingPage({
             ))}
           </div>
 
-          {/* Research canvas — reactive Three.js particle formations (vary-science-lab) */}
-          <div style={{ marginTop: 64 }}>
-            <ThreeParticleCanvas height={360} />
-          </div>
+        </div>
+
+        {/* Research canvas — full-bleed, three-column particle formations under the cards */}
+        <div style={{ borderTop: '1px solid rgba(26,26,24,0.08)', overflow: 'hidden', margin: '64px -48px 0' }}>
+          <ThreeParticleCanvas height={300} cardHovered={moduleCardHovered} />
         </div>
       </section>
 

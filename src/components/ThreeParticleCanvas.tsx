@@ -8,8 +8,16 @@ import { useEffect, useRef } from 'react';
  * mouse repulsion, dot-matrix post-processing.
  * Adapted for the ALETHEIA cream palette (ink dots on cream bg).
  */
-export function ThreeParticleCanvas({ height = 380 }: { height?: number }) {
+export function ThreeParticleCanvas({
+  height = 380,
+  cardHovered = false,
+}: {
+  height?: number;
+  cardHovered?: boolean;
+}) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const cardHoveredRef = useRef(cardHovered);
+  cardHoveredRef.current = cardHovered;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -83,18 +91,23 @@ export function ThreeParticleCanvas({ height = 380 }: { height?: number }) {
       const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22 });
       scene.add(new THREE.LineSegments(lineGeo, lineMat));
 
-      // ── Formation 2 — scattered square clusters (the N-body look) ──────────
+      // ── Formation 2 — three column-aligned cluster groups (mirror the 3 cards above) ──
       const formation2 = new Float32Array(COUNT * 3);
       (() => {
+        // Three columns: left (Voting), centre (Lobbying), right (News)
         const groups = [
-          { cx: -12, cy:  4,    size: 4,   dots: 5 },
-          { cx:  -5, cy:  5.5,  size: 3,   dots: 4 },
-          { cx:   3, cy:  6,    size: 5,   dots: 6 },
-          { cx:  11, cy:  4.5,  size: 3.5, dots: 5 },
-          { cx: -10, cy: -3,    size: 3.5, dots: 5 },
-          { cx:  -2, cy: -4,    size: 4.5, dots: 5 },
-          { cx:   7, cy: -3.5,  size: 3,   dots: 4 },
-          { cx:  13, cy: -5,    size: 4,   dots: 5 },
+          // Left column — Voting Intelligence
+          { cx: -11,  cy:  2.5,  size: 4.5, dots: 6 },
+          { cx: -8.5, cy: -1,    size: 3,   dots: 5 },
+          { cx: -12,  cy: -3.5,  size: 2.5, dots: 4 },
+          // Centre column — Lobbying Tracker
+          { cx:  -1,  cy:  3,    size: 4,   dots: 5 },
+          { cx:   1,  cy: -0.5,  size: 3.5, dots: 5 },
+          { cx:  -0.5,cy: -3.8,  size: 2.5, dots: 4 },
+          // Right column — News & Sentiment
+          { cx:   9,  cy:  2.5,  size: 4,   dots: 5 },
+          { cx:  11.5,cy: -1,    size: 3.5, dots: 5 },
+          { cx:   8,  cy: -3.5,  size: 2.5, dots: 4 },
         ];
         let idx = 0;
         const perGroup = Math.floor(COUNT / groups.length);
@@ -236,8 +249,9 @@ export function ThreeParticleCanvas({ height = 380 }: { height?: number }) {
         const pos = pGeo.attributes.position.array as Float32Array;
         const mx = mouseWorld.x, my = mouseWorld.y;
 
-        // Blend formation
-        formationBlend = formationTarget > 0
+        // Blend formation — triggered by mouse hover OR external card hover
+        const wantsFormation = formationTarget > 0 || cardHoveredRef.current;
+        formationBlend = wantsFormation
           ? Math.min(formationBlend + 0.03, 1.0)
           : Math.max(formationBlend - 0.025, 0.0);
 
