@@ -110,7 +110,7 @@ function buildModuleMeta(
       meta.voting = {
         source: 'hybrid',
         partial: true,
-        label: 'EP open data (docs/votes) + roll-call fixture',
+        label: 'EP API v2 + HowTheyVote main-vote CSV index (fixture for party/MEP breakdown)',
       };
     } else {
       meta.voting = {

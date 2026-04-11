@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "data:transparency": "node scripts/convert-transparency-register.cjs"
+    "data:transparency": "node scripts/convert-transparency-register.cjs",
+    "data:howtheyvote": "node scripts/build-howtheyvote-index.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.87.0",
@@ -32,6 +33,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.183.1",
+    "csv-parse": "^6.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "tailwindcss": "^4",
