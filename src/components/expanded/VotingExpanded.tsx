@@ -633,6 +633,24 @@ export function VotingExpanded({ data, onCollapse }: Props) {
     }
   }
 
+  function goCrumb(index: number) {
+    if (index === 0 && drillLevel !== 'overview') {
+      setDrillLevel('overview');
+      setDrillParty(null);
+      setDrillMEP(null);
+    } else if (index === 1 && drillLevel === 'mep' && drillParty) {
+      setDrillLevel('party');
+      setDrillMEP(null);
+    }
+  }
+
+  function crumbIsClickable(index: number, total: number): boolean {
+    if (index === total - 1) return false;
+    if (index === 0) return drillLevel !== 'overview';
+    if (index === 1) return drillLevel === 'mep';
+    return false;
+  }
+
   // Breadcrumb
   const crumbs = ['Voting & Parliament'];
   if (drillParty) crumbs.push(drillParty);
@@ -644,21 +662,45 @@ export function VotingExpanded({ data, onCollapse }: Props) {
       {/* Header */}
       <div style={{ flexShrink: 0, padding: '11px 22px', borderBottom: '1px solid rgba(26,26,24,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Breadcrumb */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {crumbs.map((c, i) => (
-            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {i > 0 && <span style={{ fontSize: '9px', color: 'rgba(26,26,24,0.25)' }}>›</span>}
-              <span style={{
-                fontSize: i === 0 ? '8px' : '10px',
-                fontWeight: i === crumbs.length - 1 ? 400 : 300,
-                letterSpacing: i === 0 ? '0.18em' : '0.04em',
-                textTransform: i === 0 ? 'uppercase' : 'none',
-                color: i === crumbs.length - 1 ? 'rgba(26,26,24,0.7)' : 'rgba(26,26,24,0.38)',
-              }}>
-                {c}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} role="navigation" aria-label="Voting drill-down">
+          {crumbs.map((c, i) => {
+            const last = i === crumbs.length - 1;
+            const clickable = crumbIsClickable(i, crumbs.length);
+            const labelStyles = {
+              fontSize: i === 0 ? '8px' : '10px',
+              fontWeight: last ? 400 : 300,
+              letterSpacing: i === 0 ? '0.18em' : '0.04em',
+              textTransform: i === 0 ? 'uppercase' as const : 'none' as const,
+              color: last ? 'rgba(26,26,24,0.7)' : 'rgba(26,26,24,0.38)',
+            } as const;
+            return (
+              <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {i > 0 && <span style={{ fontSize: '9px', color: 'rgba(26,26,24,0.25)' }} aria-hidden>›</span>}
+                {clickable ? (
+                  <button
+                    type="button"
+                    onClick={() => goCrumb(i)}
+                    style={{
+                      ...labelStyles,
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      textAlign: 'left',
+                      textDecoration: 'underline',
+                      textDecorationColor: 'rgba(26,26,24,0.2)',
+                      textUnderlineOffset: '2px',
+                    }}
+                  >
+                    {c}
+                  </button>
+                ) : (
+                  <span style={labelStyles}>{c}</span>
+                )}
               </span>
-            </span>
-          ))}
+            );
+          })}
         </div>
 
         {drillLevel !== 'overview' ? (
