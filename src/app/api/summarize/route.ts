@@ -2,7 +2,11 @@ import { NextRequest } from 'next/server';
 import type { ClassificationResult, ModuleData, ModuleSliceMeta } from '@/lib/types';
 import { selectMockData } from '@/lib/mockDataSelector';
 import { mergeModuleData } from '@/lib/pipeline/mergeModuleData';
-import { fetchParliamentVotingData, parseProcedureProcessId } from '@/lib/sources/parliament';
+import {
+  fetchParliamentVotingData,
+  parseProcedureProcessId,
+  processIdFromLegislationKeywords,
+} from '@/lib/sources/parliament';
 import { fetchGdeltNewsData } from '@/lib/sources/gdelt';
 import { fetchWikipediaEntitySummary } from '@/lib/sources/wikipedia';
 import { buildLobbyingFromRegisterSnapshot } from '@/lib/transparencyRegister/search';
@@ -223,7 +227,7 @@ Fetch the relevant data and write your summary.`,
 
     if (classification.modules.includes('VOTING')) {
       const hay = [query, ...classification.entities].join(' ');
-      if (parseProcedureProcessId(hay)) {
+      if (parseProcedureProcessId(hay) || processIdFromLegislationKeywords(hay)) {
         const canonical = await fetchParliamentVotingData(query, classification.entities);
         if (canonical.queryMatched) {
           const ix = toolResultsAccumulator.findIndex(t => t.name === 'fetch_voting_data');

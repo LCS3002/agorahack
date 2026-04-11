@@ -63,6 +63,8 @@ function fallbackClassify(query: string): ClassificationResult {
   if (q.includes('von der leyen'))      entities.push('Ursula von der Leyen');
   if (q.includes('pfizer'))             entities.push('Pfizer');
   if (q.includes('nature restoration')) entities.push('Nature Restoration Law');
+  if (q.includes('digital services act') || /\bdsa\b/.test(q)) entities.push('Digital Services Act');
+  if (q.includes('digital markets act') || /\bdma\b/.test(q)) entities.push('Digital Markets Act');
   if (q.includes('ai act'))             entities.push('EU AI Act');
   if (q.includes('farm'))              entities.push('CAP Farm Subsidies');
   if (q.includes('pharma'))            entities.push('Pharmaceutical Industry');

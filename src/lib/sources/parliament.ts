@@ -136,6 +136,26 @@ async function resolveProcessId(query: string, entities: string[]): Promise<stri
 }
 
 /**
+ * When EP document / plenary text search fails, map well-known legislation names to OLP process_id (YYYY-NNNN).
+ */
+export function processIdFromLegislationKeywords(text: string): string | null {
+  const q = text.toLowerCase();
+  const hasDsa =
+    q.includes('digital services act') ||
+    /\bdsa\b/.test(q) ||
+    q.includes('single market for digital services');
+  const hasDma = q.includes('digital markets act') || /\bdma\b/.test(q);
+  const hasAi =
+    /\bai act\b/.test(q) ||
+    (q.includes('artificial intelligence act') && !q.includes('digital services act'));
+
+  if (hasDsa) return '2020-0361';
+  if (hasDma) return '2020-0374';
+  if (hasAi) return '2021-0106';
+  return null;
+}
+
+/**
  * v1 plenary-documents: still 200 — used only to infer `YYYY/NNNN(COD)` from matched titles when v2 id missing.
  */
 async function tryProcessIdFromPlenaryDocMatch(query: string, entities: string[]): Promise<string | null> {
@@ -237,7 +257,9 @@ export async function fetchParliamentVotingData(
   entities: string[] = [],
 ): Promise<ParliamentVotingFetchResult> {
   try {
+    const haystack = [query, ...entities].join(' ');
     let processId = await resolveProcessId(query, entities);
+    if (!processId) processId = processIdFromLegislationKeywords(haystack);
     if (!processId) processId = await tryProcessIdFromPlenaryDocMatch(query, entities);
     if (!processId) {
       return { matchedDocuments: [], recentVotes: [], queryMatched: false };
@@ -397,7 +419,8 @@ export async function fetchParliamentVotingData(
       ...enr,
     };
   } catch {
-    const pid = parseProcedureProcessId([query, ...entities].join(' '));
+    const hay = [query, ...entities].join(' ');
+    const pid = parseProcedureProcessId(hay) ?? processIdFromLegislationKeywords(hay);
     if (pid) {
       const snap = await parliamentVoteResultFromHowTheyVoteSnapshot(pid);
       if (snap) return snap;

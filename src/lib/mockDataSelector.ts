@@ -1,10 +1,26 @@
 import type { ClassificationResult, ModuleData } from './types';
 import { votingData, lobbyingData, newsData } from './mockData';
 
-type DataKey = 'natureRestoration' | 'aiAct' | 'csrd' | 'farmSubsidies' | 'pharma';
+type DataKey =
+  | 'natureRestoration'
+  | 'aiAct'
+  | 'csrd'
+  | 'farmSubsidies'
+  | 'pharma'
+  | 'digitalServicesAct'
+  | 'digitalMarketsAct';
 
 function detectKey(query: string, entities: string[]): DataKey {
   const q = (query + ' ' + entities.join(' ')).toLowerCase();
+
+  if (
+    q.match(/digital services act|\bdsa\b|single market for digital|2020\/0361|2020-0361|com\(2020\)0825/)
+  ) {
+    return 'digitalServicesAct';
+  }
+  if (q.match(/digital markets act|\bdma\b|2020\/0374|2020-0374/)) {
+    return 'digitalMarketsAct';
+  }
 
   if (q.match(/ai act|artificial intelligence|benifei|tudorache|biometric/)) {
     return 'aiAct';
