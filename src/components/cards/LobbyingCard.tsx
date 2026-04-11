@@ -110,7 +110,7 @@ export function LobbyingCard({ data }: LobbyingCardProps) {
       {(data.partialConflicts?.length ?? 0) > 0 && (
         <div>
           <div className="label-xs" style={{ marginBottom: '10px', color: 'rgba(26,26,24,0.45)' }}>
-            Heuristic signals (partial)
+            Activity signals (partial)
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {(data.partialConflicts ?? []).map((s) => (
