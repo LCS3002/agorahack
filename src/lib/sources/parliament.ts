@@ -292,6 +292,39 @@ async function parliamentVoteResultFromHowTheyVoteSnapshot(
   };
 }
 
+/**
+ * Build a full result from a HowTheyVote snapshot row (offline, instant).
+ * Used by both the title-search path and the processId-with-snapshot path.
+ */
+async function resultFromHtvRow(titleHit: import('@/lib/sources/howTheyVote').HowTheyVoteMainRow): Promise<ParliamentVotingFetchResult> {
+  const htvDate = titleHit.timestamp?.slice(0, 10) ?? '';
+  const extras = lookupHowTheyVoteVoteExtras(titleHit.id);
+  const raw = extras?.keyMEPs as Array<KeyMEP & { memberId?: number }> | undefined;
+  const picks = raw
+    ?.filter((k): k is KeyMEP & { memberId: number } => typeof k.memberId === 'number')
+    .map(k => ({ memberId: k.memberId, name: k.name, party: k.party, country: k.country, vote: k.vote }))
+    ?? [];
+  const enr = picks.length ? await enrichKeyMepProfiles(picks, htvDate) : {};
+  return {
+    matchedDocuments: [{
+      title: titleHit.procedureTitle || titleHit.displayTitle,
+      reference: titleHit.procedureReference || titleHit.reference,
+      date: htvDate,
+    }],
+    recentVotes: [{
+      label: titleHit.displayTitle || titleHit.procedureTitle,
+      for: titleHit.for,
+      against: titleHit.against,
+      abstain: titleHit.abstain,
+      date: htvDate,
+      howTheyVoteVoteId: titleHit.id,
+    }],
+    queryMatched: true,
+    shortName: titleHit.reference?.trim() || titleHit.displayTitle,
+    ...enr,
+  };
+}
+
 export async function fetchParliamentVotingData(
   query: string,
   entities: string[] = [],
@@ -299,43 +332,32 @@ export async function fetchParliamentVotingData(
 ): Promise<ParliamentVotingFetchResult> {
   try {
     const haystack = [query, ...entities].join(' ');
+
+    // ── Step 1: derive a processId from the fastest sources (no network) ──────
+    // Priority: LLM-extracted ref → inline ref in query text → keyword table
     let processId = await resolveProcessId(query, entities, procedureRef);
     if (!processId) processId = processIdFromLegislationKeywords(haystack);
-    if (!processId) processId = await tryProcessIdFromPlenaryDocMatch(query, entities);
-    if (!processId) {
-      // Last resort: search the local HowTheyVote snapshot by procedure title —
-      // covers well-known votes not in the hardcoded keyword table and when EP APIs are slow/unavailable.
-      const titleHit = searchHowTheyVoteByTitle(query, entities);
-      if (titleHit) {
-        const htvDate = titleHit.timestamp?.slice(0, 10) ?? '';
-        const extras = lookupHowTheyVoteVoteExtras(titleHit.id);
-        const raw = extras?.keyMEPs as Array<KeyMEP & { memberId?: number }> | undefined;
-        const picks = raw
-          ?.filter((k): k is KeyMEP & { memberId: number } => typeof k.memberId === 'number')
-          .map(k => ({ memberId: k.memberId, name: k.name, party: k.party, country: k.country, vote: k.vote }))
-          ?? [];
-        const enr = picks.length ? await enrichKeyMepProfiles(picks, htvDate) : {};
-        return {
-          matchedDocuments: [{
-            title: titleHit.procedureTitle || titleHit.displayTitle,
-            reference: titleHit.procedureReference || titleHit.reference,
-            date: htvDate,
-          }],
-          recentVotes: [{
-            label: titleHit.displayTitle || titleHit.procedureTitle,
-            for: titleHit.for,
-            against: titleHit.against,
-            abstain: titleHit.abstain,
-            date: htvDate,
-            howTheyVoteVoteId: titleHit.id,
-          }],
-          queryMatched: true,
-          shortName: titleHit.reference?.trim() || titleHit.displayTitle,
-          ...enr,
-        };
-      }
-      return { matchedDocuments: [], recentVotes: [], queryMatched: false };
+
+    // ── Step 2: if we have a processId, try HowTheyVote OFFLINE FIRST ─────────
+    // This covers ~95% of well-known legislation instantly without any network call.
+    if (processId) {
+      const htvDirect = lookupHowTheyVoteMainVote({
+        procedureLabel: '',
+        processId,
+        processType: 'def/ep-procedure-types/COD',
+      });
+      if (htvDirect) return resultFromHtvRow(htvDirect);
     }
+
+    // ── Step 3: fuzzy title search in local HowTheyVote index ────────────────
+    // Catches queries where the user doesn't use the exact procedure name.
+    const titleHit = searchHowTheyVoteByTitle(query, entities);
+    if (titleHit) return resultFromHtvRow(titleHit);
+
+    // ── Step 4: EP v2 live API (network, slow — only reached for very recent
+    //    or obscure votes not yet in the HowTheyVote snapshot) ─────────────────
+    if (!processId) processId = await tryProcessIdFromPlenaryDocMatch(query, entities);
+    if (!processId) return { matchedDocuments: [], recentVotes: [], queryMatched: false };
 
     const procUrl = `${EP_V2}/procedures/${encodeURIComponent(processId)}`;
     const procJson = await fetchJson(procUrl);
