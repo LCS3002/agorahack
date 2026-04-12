@@ -1,3 +1,4 @@
+import { sanitizeModuleDataMojibake } from '@/lib/fixUtf8Mojibake';
 import type { ModuleData, SummarySourceLink } from '@/lib/types';
 
 /** Human-facing EP procedure page from reference like `2021/0106(COD)` or `2021-0106`. */
@@ -79,5 +80,5 @@ export function withSummarySources(
 ): ModuleData {
   const summarySources = buildSummarySources(md, toolResults);
   if (!summarySources.length) return md;
-  return { ...md, summarySources };
+  return sanitizeModuleDataMojibake({ ...md, summarySources });
 }
