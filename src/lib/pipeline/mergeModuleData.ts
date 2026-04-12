@@ -9,6 +9,7 @@ import type {
   SentimentPoint,
 } from '@/lib/types';
 import { formatCountryAlpha2 } from '@/lib/countryDisplay';
+import { sanitizeModuleDataMojibake } from '@/lib/fixUtf8Mojibake';
 import { lookupHowTheyVoteVoteExtras } from '@/lib/sources/howTheyVote';
 
 export interface MergeModuleDataOptions {
@@ -128,7 +129,7 @@ export function mergeModuleData(
   }
 
   out.meta = buildModuleMeta(classification, toolResults, options?.lobbyingSliceMeta);
-  return out;
+  return sanitizeModuleDataMojibake(out);
 }
 
 function buildModuleMeta(
