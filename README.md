@@ -77,25 +77,29 @@ Real-time media sentiment via GDELT API across 30 days.
 
 ## AI Agent Architecture
 
+Provider order: **`OPENAI_API_KEY` set → OpenAI-compatible API** (see `OPENAI_BASE_URL`, `OPENAI_MODEL_CLASSIFY`, `OPENAI_MODEL_AGENT`; TNG defaults to `tngtech/R1T2-Chimera-Speed`, official OpenAI defaults to `gpt-4o-mini` / `gpt-4o`). **Else `ANTHROPIC_API_KEY` → Anthropic** (classify: `claude-haiku-4-5-20251001`, summarize agent: `claude-sonnet-4-6`).
+
 ```
 User query
     │
     ▼
 ┌─────────────────────────────────────────────┐
-│  /api/classify  (claude-haiku-4-5)          │
-│  Fast JSON routing — modules, entities,     │
+│  /api/classify                              │
+│  OpenAI-compat OR Anthropic Haiku, Sonnet OR │
+│  regex JSON routing                          │
 │  timeframe, query_type, moduleContext       │
 └─────────────┬───────────────────────────────┘
               │  ClassificationResult
               ▼
 ┌─────────────────────────────────────────────┐
-│  /api/summarize  (claude-sonnet-4-6)        │
-│  Tool-use agentic loop — max 3 rounds       │
+│  /api/summarize                             │
+│  OpenAI-compat OR Anthropic Sonnet OR       │
+│  no-LLM path (real tools + template text)   │
 │                                             │
 │  Tools:                                     │
 │  ├── fetch_voting_data  → EP Open Data API  │
-│  ├── fetch_news_data    → GDELT API         │
-│  └── get_entity_background → Wikipedia     │
+│  ├── fetch_news_data    → Valyu or GDELT    │
+│  └── get_entity_background → Wikipedia    │
 │                                             │
 │  + EU Transparency Register search         │
 │    (17k orgs, keyword-scored, cached)      │
@@ -112,11 +116,11 @@ User query
          Dashboard + streamed summary
 ```
 
-**Classification** (`claude-haiku-4-5`) — routes each query to the relevant modules. Policy queries activate all three. Person queries (no specific bill) activate Voting + News only, with a contextual hint in the Lobbying panel explaining the scope limitation. Fast, cheap, structured JSON output.
+**Classification** — routes each query to the relevant modules. Policy queries activate all three. Person queries (no specific bill) activate Voting + News only, with a contextual hint in the Lobbying panel explaining the scope limitation. Structured JSON output; exact model depends on provider (see above).
 
-**Summarisation** (`claude-sonnet-4-6`) — tool-use loop fetches real data then streams a 3–4 sentence analysis. Writes like The Economist: names names, cites figures, flags conflicts of interest without hedging. Inline `[n]` citation markers reference specific data points.
+**Summarisation** — prefetch + tool-use loop (when an LLM is configured) then streams a cited brief. Inline `[n]` citation markers reference numbered sources built from tool outputs.
 
-**Fallback** — with no API key, the system still fetches real EP Open Data and GDELT results, merges them with fixture data, and generates a templated summary. Every layer degrades gracefully.
+**Fallback** — with no LLM API key, the system still fetches real EP Open Data and news (GDELT), merges them with fixture data where relevant, and generates a templated summary. Every layer degrades gracefully.
 
 ---
 
