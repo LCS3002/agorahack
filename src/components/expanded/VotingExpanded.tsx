@@ -1,8 +1,32 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { VoteResult, PartyVote, MEPProfile } from '@/lib/types';
+import type { VoteResult, PartyVote, MEPProfile, KeyMEP } from '@/lib/types';
+import { formatCountryAlpha2, formatCountryForUi } from '@/lib/countryDisplay';
+
+function keyMepToMinimalProfile(m: KeyMEP): MEPProfile {
+  const countryA2 = formatCountryAlpha2(m.country);
+  const nationality = formatCountryForUi(m.country) || countryA2;
+  return {
+    name: m.name,
+    party: m.party,
+    country: countryA2,
+    vote: m.vote,
+    note: m.note,
+    memberId: m.memberId,
+    bio: 'MEP — European Parliament.',
+    committees: ['—'],
+    bornYear: 1970,
+    nationality,
+    officialPageUrl:
+      m.memberId != null
+        ? `https://www.europarl.europa.eu/meps/en/${m.memberId}`
+        : undefined,
+    lobbyConnections: [],
+    pastVotes: [],
+  };
+}
 
 const PARTY_ORDER   = ['The Left', 'Greens', 'S&D', 'Renew', 'EPP', 'ECR', 'ID', 'ESN'];
 const FOR_COLOR     = 'rgba(26,26,24,0.82)';
@@ -360,6 +384,10 @@ function PartyView({
     return profiles.find(p => p.name === name) ?? null;
   }
 
+  function resolveProfile(mep: KeyMEP) {
+    return getProfile(mep.name) ?? keyMepToMinimalProfile(mep);
+  }
+
   return (
     <div style={{ height: '100%', overflowY: 'auto' }}>
       {/* Party stats row */}
@@ -389,52 +417,51 @@ function PartyView({
       {/* MEP list */}
       <div style={{ padding: '20px 22px' }}>
         <div style={{ fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.38)', marginBottom: '14px' }}>
-          Key MEPs — {party}
+          MEPs — {party} ({partyMEPs.length})
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           {partyMEPs.map(mep => {
-            const profile = getProfile(mep.name);
-            const hasProfile = profile !== null;
+            const enriched = getProfile(mep.name);
+            const profile = resolveProfile(mep);
+            const hasEnriched = enriched !== null;
             return (
               <div
-                key={mep.name}
-                onClick={() => hasProfile && onSelectMEP(profile!)}
+                key={mep.memberId != null ? `m${mep.memberId}` : mep.name}
+                onClick={() => onSelectMEP(profile)}
                 style={{
                   padding: '14px 0',
                   borderBottom: '1px solid rgba(26,26,24,0.07)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '14px',
-                  cursor: hasProfile ? 'pointer' : 'default',
+                  cursor: 'pointer',
                   transition: 'background 0.15s',
                 }}
-                onMouseEnter={e => { if (hasProfile) (e.currentTarget as HTMLElement).style.background = 'rgba(26,26,24,0.025)'; }}
-                onMouseLeave={e => { if (hasProfile) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(26,26,24,0.025)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
                 <VoteBadge vote={mep.vote} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '14px', fontWeight: 300, color: '#1A1A18' }}>{mep.name}</span>
-                    <span style={{ fontSize: '9px', color: 'rgba(26,26,24,0.38)' }}>{mep.country}</span>
+                    <span style={{ fontSize: '9px', color: 'rgba(26,26,24,0.38)' }}>{formatCountryAlpha2(mep.country)}</span>
                     {mep.note && <span style={{ fontSize: '9px', color: 'rgba(26,26,24,0.4)', fontStyle: 'italic' }}>{mep.note}</span>}
                   </div>
-                  {profile && (
+                  {hasEnriched && (
                     <div style={{ fontSize: '9px', color: 'rgba(26,26,24,0.4)', marginTop: '2px' }}>
-                      {profile.committees.join(' · ')} · {profile.lobbyConnections.length} lobby connection{profile.lobbyConnections.length !== 1 ? 's' : ''} on file
+                      {enriched.committees.join(' · ')} · {enriched.lobbyConnections.length} lobby connection{enriched.lobbyConnections.length !== 1 ? 's' : ''} on file
                     </div>
                   )}
                 </div>
-                {hasProfile && (
-                  <span style={{ fontSize: '8px', color: 'rgba(26,26,24,0.3)', letterSpacing: '0.08em' }}>
-                    Profile →
-                  </span>
-                )}
+                <span style={{ fontSize: '8px', color: 'rgba(26,26,24,0.3)', letterSpacing: '0.08em' }}>
+                  Profile →
+                </span>
               </div>
             );
           })}
           {partyMEPs.length === 0 && (
             <div style={{ fontSize: '11px', fontWeight: 300, color: 'rgba(26,26,24,0.3)', padding: '20px 0' }}>
-              No key MEPs on record for {party} on this file.
+              No MEP roll-call rows for {party} on this file.
             </div>
           )}
         </div>
@@ -447,9 +474,12 @@ function PartyView({
 function OverviewView({
   data,
   onDrillParty,
+  rollCallHint,
 }: {
   data: VoteResult;
   onDrillParty: (party: string) => void;
+  /** e.g. loading / missing data / sample explanation */
+  rollCallHint?: string | null;
 }) {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
 
@@ -575,18 +605,22 @@ function OverviewView({
       {/* MEP grid */}
       <div style={{ padding: '20px 22px' }}>
         <div style={{ fontSize: '7.5px', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.38)', marginBottom: '12px' }}>
-          Key MEPs
+          {data.keyMEPs.length > 16 ? `MEP roll-call (${data.keyMEPs.length})` : 'Key MEPs'}
         </div>
+        {rollCallHint ? (
+          <div style={{ fontSize: '9.5px', fontWeight: 300, color: 'rgba(26,26,24,0.42)', marginBottom: '10px', lineHeight: 1.5 }}>
+            {rollCallHint}
+          </div>
+        ) : null}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1px', background: 'rgba(26,26,24,0.07)' }}>
           {data.keyMEPs.map(mep => {
             const vc = mep.vote === 'FOR' ? 'rgba(26,26,24,0.8)' : mep.vote === 'AGAINST' ? '#C9A89A' : 'rgba(26,26,24,0.35)';
             const bc = mep.vote === 'FOR' ? 'rgba(26,26,24,0.22)' : mep.vote === 'AGAINST' ? 'rgba(201,168,154,0.5)' : 'rgba(26,26,24,0.1)';
             const dimmed = !!selectedParty && mep.party !== selectedParty;
-            const profile = (data.mepProfiles ?? []).find(p => p.name === mep.name);
             return (
               <div
-                key={mep.name}
-                onClick={() => profile && onDrillParty(mep.party)}
+                key={mep.memberId != null ? `m${mep.memberId}` : mep.name}
+                onClick={() => onDrillParty(mep.party)}
                 style={{ background: '#F0EDE8', padding: '14px 16px', display: 'flex', gap: '10px', opacity: dimmed ? 0.3 : 1, transition: 'opacity 0.22s', cursor: 'pointer' }}
               >
                 <span style={{ fontSize: '7px', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: vc, border: `1px solid ${bc}`, padding: '2px 6px', flexShrink: 0, marginTop: '2px', height: 'fit-content' }}>
@@ -594,7 +628,7 @@ function OverviewView({
                 </span>
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 300, color: '#1A1A18' }}>{mep.name}</div>
-                  <div style={{ fontSize: '9.5px', color: 'rgba(26,26,24,0.42)', marginTop: '2px' }}>{mep.party} · {mep.country}</div>
+                  <div style={{ fontSize: '9.5px', color: 'rgba(26,26,24,0.42)', marginTop: '2px' }}>{mep.party} · {formatCountryAlpha2(mep.country)}</div>
                   {mep.note && <div style={{ fontSize: '9.5px', color: 'rgba(26,26,24,0.38)', fontStyle: 'italic', marginTop: '3px' }}>{mep.note}</div>}
                 </div>
               </div>
@@ -611,6 +645,51 @@ export function VotingExpanded({ data, onCollapse }: Props) {
   const [drillLevel,  setDrillLevel]  = useState<DrillLevel>('overview');
   const [drillParty,  setDrillParty]  = useState<string | null>(null);
   const [drillMEP,    setDrillMEP]    = useState<MEPProfile | null>(null);
+  const [rollCall, setRollCall] = useState<KeyMEP[] | null>(null);
+  const [rollCallFetch, setRollCallFetch] = useState<'idle' | 'loading' | 'done'>('idle');
+
+  useEffect(() => {
+    if (data.howTheyVoteVoteId == null) {
+      setRollCall(null);
+      setRollCallFetch('idle');
+      return;
+    }
+    setRollCallFetch('loading');
+    let cancelled = false;
+    fetch(`/api/voting-rollcall?voteId=${data.howTheyVoteVoteId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => {
+        if (cancelled) return;
+        if (j?.rollCall?.length) setRollCall(j.rollCall as KeyMEP[]);
+        else setRollCall(null);
+      })
+      .catch(() => {
+        if (!cancelled) setRollCall(null);
+      })
+      .finally(() => {
+        if (!cancelled) setRollCallFetch('done');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data.howTheyVoteVoteId]);
+
+  const votingViewData = useMemo(
+    (): VoteResult => ({
+      ...data,
+      keyMEPs: rollCall ?? data.keyMEPs,
+    }),
+    [data, rollCall],
+  );
+
+  const rollCallHint =
+    data.howTheyVoteVoteId == null
+      ? null
+      : rollCallFetch === 'loading'
+        ? 'Loading full roll-call…'
+        : rollCallFetch === 'done' && !rollCall
+          ? 'Full per-MEP list unavailable — run npm run data:howtheyvote locally to generate data/howtheyvote-rollcall/.'
+          : null;
 
   function goToParty(party: string) {
     setDrillParty(party);
@@ -719,12 +798,12 @@ export function VotingExpanded({ data, onCollapse }: Props) {
         <AnimatePresence mode="wait">
           {drillLevel === 'overview' && (
             <motion.div key="overview" {...slide} style={{ height: '100%' }}>
-              <OverviewView data={data} onDrillParty={goToParty} />
+              <OverviewView data={votingViewData} onDrillParty={goToParty} rollCallHint={rollCallHint} />
             </motion.div>
           )}
           {drillLevel === 'party' && drillParty && (
             <motion.div key={`party-${drillParty}`} {...slide} style={{ height: '100%' }}>
-              <PartyView party={drillParty} data={data} onSelectMEP={goToMEP} />
+              <PartyView party={drillParty} data={votingViewData} onSelectMEP={goToMEP} />
             </motion.div>
           )}
           {drillLevel === 'mep' && drillMEP && (

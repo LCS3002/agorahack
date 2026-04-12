@@ -85,6 +85,9 @@ export function mergeModuleData(
           ...(typeof r.committee === 'string'
             ? { committee: r.committee.trim() || out.voting.committee }
             : {}),
+          ...(vote?.howTheyVoteVoteId != null
+            ? { howTheyVoteVoteId: vote.howTheyVoteVoteId }
+            : {}),
           ...(r.keyMEPs && r.keyMEPs.length > 0
             ? { keyMEPs: r.keyMEPs }
             : htvExtras?.keyMEPs?.length
@@ -149,7 +152,8 @@ function buildModuleMeta(
       meta.voting = {
         source: 'hybrid',
         partial: true,
-        label: 'EP API v2 + HowTheyVote (totals, party breakdown, key MEPs from roll-call index)',
+        label:
+          'EP API v2 + HowTheyVote (totals, party breakdown; full MEP list loads from roll-call files when present)',
       };
     } else {
       meta.voting = {

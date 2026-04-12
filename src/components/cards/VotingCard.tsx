@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { VoteResult, PartyVote } from '@/lib/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -195,6 +195,37 @@ export function VotingCard({ data }: VotingCardProps) {
   const agnPct   = hasTally ? (data.votes.against / total) * 100 : 0;
   const absPct   = hasTally ? (data.votes.abstain / total) * 100 : 0;
 
+  const [rollCallCount, setRollCallCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (data.howTheyVoteVoteId == null) {
+      setRollCallCount(null);
+      return;
+    }
+    setRollCallCount(null);
+    let cancelled = false;
+    fetch(`/api/voting-rollcall?voteId=${data.howTheyVoteVoteId}&countOnly=1`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => {
+        if (cancelled) return;
+        if (typeof j?.count === 'number') setRollCallCount(j.count);
+        else setRollCallCount(null);
+      })
+      .catch(() => {
+        if (!cancelled) setRollCallCount(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data.howTheyVoteVoteId]);
+
+  const mepSectionLabel =
+    rollCallCount != null && rollCallCount > data.keyMEPs.length
+      ? `Key MEPs · full roll-call ${rollCallCount.toLocaleString()} MEPs (expand panel for list)`
+      : rollCallCount != null && rollCallCount > 0
+        ? `Key MEPs · ${rollCallCount.toLocaleString()} MEPs on file`
+        : 'Key MEPs';
+
   return (
     <div className="aether-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
 
@@ -258,11 +289,11 @@ export function VotingCard({ data }: VotingCardProps) {
 
       {/* ── Key MEPs ──────────────────────────────────────────────────── */}
       <div>
-        <div className="label-xs" style={{ marginBottom: '10px' }}>Key MEPs</div>
+        <div className="label-xs" style={{ marginBottom: '10px', lineHeight: 1.45 }}>{mepSectionLabel}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
           {data.keyMEPs.map((mep) => (
             <div
-              key={mep.name}
+              key={mep.memberId != null ? `m${mep.memberId}` : mep.name}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>

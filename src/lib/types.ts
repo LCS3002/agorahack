@@ -84,6 +84,8 @@ export interface VoteResult {
   date: string;
   committee: string;
   reference: string;
+  /** HowTheyVote votes.csv id — used to load full roll-call from /api/voting-rollcall */
+  howTheyVoteVoteId?: number;
 }
 
 // ── LOBBYING module ───────────────────────────────────────────────────────────

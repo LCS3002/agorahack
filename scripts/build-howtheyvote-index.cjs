@@ -167,6 +167,9 @@ function streamMemberVotes(voteIds, onRow, url = MEMBER_VOTES_URL) {
   const aggByVote = new Map();
   /** @type {Map<number, Map<string, { member_id: number; position: string; country_code: string }>>} */
   const keyMin = new Map();
+  /** Full roll-call per main vote (all MEP rows from member_votes). */
+  /** @type {Map<number, Array<{ member_id: number; position: string; group_code: string; country_code: string }>>} */
+  const rollByVote = new Map();
 
   await streamMemberVotes(voteIds, (vid, row) => {
     const gcode = String(row.group_code ?? '');
@@ -180,6 +183,14 @@ function streamMemberVotes(voteIds, onRow, url = MEMBER_VOTES_URL) {
     }
     const bucket = gm.get(gcode);
     bucket[pos] = (bucket[pos] || 0) + 1;
+
+    if (!rollByVote.has(vid)) rollByVote.set(vid, []);
+    rollByVote.get(vid).push({
+      member_id: mid,
+      position: pos,
+      group_code: gcode,
+      country_code: String(row.country_code ?? ''),
+    });
 
     const party = groupCodeToParty(gcode);
     if (!keyMin.has(vid)) keyMin.set(vid, new Map());
@@ -261,6 +272,33 @@ function streamMemberVotes(voteIds, onRow, url = MEMBER_VOTES_URL) {
   const extrasPath = path.join(__dirname, '../src/data/howtheyvote-vote-extras.json');
   fs.writeFileSync(extrasPath, JSON.stringify(extras, null, 0) + '\n');
   console.log('wrote', extrasPath, 'vote keys:', Object.keys(extras).length);
+
+  const rollDir = path.join(__dirname, '../data/howtheyvote-rollcall');
+  fs.mkdirSync(rollDir, { recursive: true });
+  let rollFiles = 0;
+  for (const vid of voteIds) {
+    const rows = rollByVote.get(vid);
+    if (!rows?.length) continue;
+    const rollCall = rows.map(r => {
+      const party = groupCodeToParty(r.group_code);
+      const mem = members.get(r.member_id);
+      const name = mem ? `${mem.first_name} ${mem.last_name}`.trim() : `#${r.member_id}`;
+      return {
+        memberId: r.member_id,
+        name,
+        party,
+        country: mem?.country_code || r.country_code || '',
+        vote: positionToVote(r.position),
+      };
+    });
+    rollCall.sort(
+      (a, b) =>
+        partyOrderIndex(a.party) - partyOrderIndex(b.party) || a.name.localeCompare(b.name, 'en'),
+    );
+    fs.writeFileSync(path.join(rollDir, `${vid}.json`), JSON.stringify(rollCall) + '\n');
+    rollFiles++;
+  }
+  console.log('wrote', rollDir, 'roll-call files:', rollFiles);
 })().catch(e => {
   console.error(e);
   process.exit(1);
