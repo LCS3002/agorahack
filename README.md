@@ -22,7 +22,7 @@
 
 ![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=for-the-badge&logo=next.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Anthropic](https://img.shields.io/badge/Claude_Sonnet-D97757?style=for-the-badge&logoColor=white)
+![TNG](https://img.shields.io/badge/TNG_R1T2--Chimera-6B4FBB?style=for-the-badge&logoColor=white)
 ![Three.js](https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=three.js&logoColor=white)
 ![Framer](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
 
@@ -181,13 +181,13 @@ No LLM key? The system still fetches real EP Open Data and GDELT news, merges th
 
 ### Provider Order
 
-| Priority | Condition | Models used |
-|---|---|---|
-| **1** | `OPENAI_API_KEY` set | classify: `OPENAI_MODEL_CLASSIFY` · agent: `OPENAI_MODEL_AGENT` |
-| **2** | `ANTHROPIC_API_KEY` set | classify: `claude-haiku-4-5-20251001` · agent: `claude-sonnet-4-6` |
-| **3** | No key | Template summaries + live EP/GDELT data |
+| Priority | Condition | Classify | Agent |
+|---|---|---|---|
+| **1 — OpenAI-compat** | `OPENAI_API_KEY` set | `OPENAI_MODEL_CLASSIFY` | `OPENAI_MODEL_AGENT` |
+| **2 — Anthropic fallback** | `ANTHROPIC_API_KEY` set, no OpenAI key | `claude-haiku-4-5-20251001` | `claude-sonnet-4-6` |
+| **3 — No LLM** | Neither key present | regex router | template text |
 
-TNG defaults to `tngtech/R1T2-Chimera-Speed`. Official OpenAI defaults to `gpt-4o-mini` / `gpt-4o`.
+At AgoraHacks the system runs against **TNG's OpenAI-compatible endpoint** (`tngtech/R1T2-Chimera-Speed`) via the TNG TUM.ai API. Official OpenAI defaults to `gpt-4o-mini` / `gpt-4o`. Anthropic is a legacy fallback only.
 
 ---
 
@@ -249,16 +249,14 @@ The interface takes no position. Cream surfaces and ink-opacity hierarchies keep
 
 ### Colour Tokens
 
-<table>
-<tr>
-<td align="center" width="16%"><img src="https://via.placeholder.com/60x40/F0EDE8/F0EDE8?text=+" /><br><b>Cream</b><br><code>#F0EDE8</code><br><sub>All surfaces</sub></td>
-<td align="center" width="16%"><img src="https://via.placeholder.com/60x40/1A1A18/1A1A18?text=+" /><br><b>Ink</b><br><code>#1A1A18</code><br><sub>Primary text</sub></td>
-<td align="center" width="16%"><img src="https://via.placeholder.com/60x40/C9A89A/C9A89A?text=+" /><br><b>Rose</b><br><code>#C9A89A</code><br><sub>Conflict · citations</sub></td>
-<td align="center" width="16%"><img src="https://via.placeholder.com/60x40/D4C4A8/D4C4A8?text=+" /><br><b>Sand</b><br><code>#D4C4A8</code><br><sub>Skeletons · accent</sub></td>
-<td align="center" width="16%"><img src="https://via.placeholder.com/60x40/8A8882/8A8882?text=+" /><br><b>Warmgrey</b><br><code>#8A8882</code><br><sub>News · secondary</sub></td>
-<td align="center" width="16%"><img src="https://via.placeholder.com/60x40/4A4A48/4A4A48?text=+" /><br><b>Charcoal</b><br><code>#4A4A48</code><br><sub>Tertiary labels</sub></td>
-</tr>
-</table>
+| Token | Hex | Role |
+|---|---|---|
+| `████ Cream` | `#F0EDE8` | All surfaces — background, cards, inputs |
+| `████ Ink` | `#1A1A18` | Primary text and all foreground elements |
+| `████ Rose` | `#C9A89A` | Conflict signals · opposition votes · citations |
+| `████ Sand` | `#D4C4A8` | Loading skeletons · secondary accent |
+| `████ Warmgrey` | `#8A8882` | News module · secondary text · CENTRE lean |
+| `████ Charcoal` | `#4A4A48` | Tertiary labels · status text |
 
 Opacity on Ink creates the full tonal scale — from `1.0` (primary text) down to `0.05` (hairline backgrounds) — without introducing extra hues.
 
@@ -301,7 +299,7 @@ Opacity on Ink creates the full tonal scale — from `1.0` (primary text) down t
 <tr>
 <td align="center"><b>Framework</b><br>Next.js 15<br><sub>App Router · Turbopack</sub></td>
 <td align="center"><b>Language</b><br>TypeScript<br><sub>strict mode</sub></td>
-<td align="center"><b>AI</b><br>Anthropic SDK<br><sub>Haiku + Sonnet</sub></td>
+<td align="center"><b>AI</b><br>OpenAI-compat API<br><sub>TNG R1T2-Chimera-Speed</sub></td>
 <td align="center"><b>Animation</b><br>Framer Motion<br><sub>panel slides</sub></td>
 </tr>
 <tr>
