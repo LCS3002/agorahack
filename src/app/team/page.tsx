@@ -1,5 +1,14 @@
 export const metadata = { title: 'Aletheia — Team' };
 
+const STACK = [
+  ['LLM',         'TNG R1T2-Chimera-Speed — routing, agent briefing, entity extraction'],
+  ['Frontend',    'Next.js 16 · React · Recharts · SSE streaming'],
+  ['Voting data', 'HowTheyVote snapshot (1,995 EP votes) · EP Open Data API v2'],
+  ['Lobbying',    'EU Transparency Register — 17,081 registered organisations'],
+  ['News',        'Valyu API (primary) · GDELT v2 (fallback)'],
+  ['MEP profiles','EP API v2 · Wikipedia entity pre-fetch'],
+];
+
 const TEAM = [
   {
     name: 'Yi-Chen Hsu',
@@ -100,6 +109,31 @@ export default function TeamPage() {
                     {GH_ICON} GitHub
                   </a>
                 )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tech stack */}
+      <div style={{ width: '100%', maxWidth: '840px', marginBottom: '64px' }}>
+        <div style={{ fontSize: '9px', letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.35)', marginBottom: '20px' }}>
+          Tech Stack
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {STACK.map(([label, value], i) => (
+            <div key={label} style={{
+              display: 'flex',
+              gap: '24px',
+              padding: '10px 0',
+              borderBottom: i < STACK.length - 1 ? '1px solid rgba(26,26,24,0.07)' : 'none',
+              alignItems: 'baseline',
+            }}>
+              <div style={{ fontSize: '9px', fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,24,0.38)', minWidth: '110px', flexShrink: 0 }}>
+                {label}
+              </div>
+              <div style={{ fontSize: '12px', fontWeight: 300, color: '#1A1A18' }}>
+                {value}
               </div>
             </div>
           ))}
