@@ -152,9 +152,26 @@ export function NewsCard({ data }: NewsCardProps) {
                   </span>
                   <span style={{ fontSize: '9px', color: 'rgba(26,26,24,0.3)' }}>{h.date}</span>
                 </div>
-                <div style={{ fontSize: '12px', fontWeight: 300, color: '#1A1A18', lineHeight: 1.45 }}>
-                  {h.title}
-                </div>
+                {h.url ? (
+                  <a
+                    href={h.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: '12px', fontWeight: 300, color: '#1A1A18', lineHeight: 1.45,
+                      textDecoration: 'none', display: 'block',
+                      borderBottom: '1px solid rgba(26,26,24,0.15)',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(26,26,24,0.6)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#1A1A18'; }}
+                  >
+                    {h.title}
+                  </a>
+                ) : (
+                  <div style={{ fontSize: '12px', fontWeight: 300, color: '#1A1A18', lineHeight: 1.45 }}>
+                    {h.title}
+                  </div>
+                )}
               </div>
               <div style={{
                 fontSize: '11px',

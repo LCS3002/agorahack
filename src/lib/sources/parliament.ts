@@ -120,7 +120,14 @@ async function fetchAllVoteResultsForSitting(sittingId: string): Promise<Record<
   return out;
 }
 
-async function resolveProcessId(query: string, entities: string[]): Promise<string | null> {
+async function resolveProcessId(query: string, entities: string[], procedureRef?: string | null): Promise<string | null> {
+  // Use LLM-extracted procedure ref first — most reliable for named legislation
+  if (procedureRef) {
+    const pid = parseProcedureProcessId(procedureRef);
+    if (pid) return pid;
+    if (/^\d{4}-\d{4}/.test(procedureRef)) return procedureRef;
+  }
+
   const hay = [query, ...entities].join(' ');
   const direct = parseProcedureProcessId(hay);
   if (direct) return direct;
@@ -288,10 +295,11 @@ async function parliamentVoteResultFromHowTheyVoteSnapshot(
 export async function fetchParliamentVotingData(
   query: string,
   entities: string[] = [],
+  procedureRef?: string | null,
 ): Promise<ParliamentVotingFetchResult> {
   try {
     const haystack = [query, ...entities].join(' ');
-    let processId = await resolveProcessId(query, entities);
+    let processId = await resolveProcessId(query, entities, procedureRef);
     if (!processId) processId = processIdFromLegislationKeywords(haystack);
     if (!processId) processId = await tryProcessIdFromPlenaryDocMatch(query, entities);
     if (!processId) {

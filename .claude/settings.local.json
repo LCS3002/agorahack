@@ -48,7 +48,8 @@
       "Bash(echo \"PID: $!\")",
       "Bash(curl -s http://localhost:3001/api/classify -X POST -H \"Content-Type: application/json\" -d '{\"query\":\"what happened with the 2024 EU Asylum Pact\"}')",
       "Bash(curl:*)",
-      "Bash(npm list:*)"
+      "Bash(npm list:*)",
+      "Bash(echo \"Server PID: $!\")"
     ]
   }
 }

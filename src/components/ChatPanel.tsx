@@ -649,30 +649,25 @@ export function ChatPanel({
             </div>
           )}
 
-          {/* Prior messages in current conversation */}
+          {/* Prior messages in current conversation — full thread */}
           {conversationMessages.length > 0 && (
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '8px' }}>
               {conversationMessages.map((msg, idx) => (
-                <div key={idx} style={{ borderBottom: '1px solid rgba(26,26,24,0.07)', padding: '16px 0' }}>
+                <div key={idx} style={{ marginBottom: '24px' }}>
                   {/* User query bubble */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                     <div style={{
-                      background: 'rgba(26,26,24,0.06)', padding: '7px 12px', maxWidth: '85%',
-                      fontSize: '11px', fontWeight: 400, color: 'rgba(26,26,24,0.78)', lineHeight: 1.4,
+                      background: 'rgba(26,26,24,0.07)', padding: '8px 12px', maxWidth: '85%',
+                      fontSize: '11px', fontWeight: 400, color: '#1A1A18', lineHeight: 1.45,
                     }}>
                       {msg.query}
                     </div>
                   </div>
-                  {/* Assistant response preview */}
-                  <p style={{
-                    fontSize: '11px', fontWeight: 300, color: 'rgba(26,26,24,0.5)',
-                    lineHeight: 1.65,
-                    display: '-webkit-box', WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical' as const, overflow: 'hidden',
-                    margin: 0,
-                  }}>
-                    {msg.summary.split('\nSOURCES\n')[0].replace(/\*\*/g, '')}
-                  </p>
+                  {/* Full assistant response */}
+                  <div style={{ borderLeft: '2px solid rgba(26,26,24,0.08)', paddingLeft: '12px' }}>
+                    <SummaryWithCitations text={msg.summary} isStreaming={false} />
+                  </div>
+                  <div style={{ borderBottom: '1px solid rgba(26,26,24,0.07)', marginTop: '16px' }} />
                 </div>
               ))}
             </div>

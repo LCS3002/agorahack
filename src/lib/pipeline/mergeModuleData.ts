@@ -14,6 +14,8 @@ import { lookupHowTheyVoteVoteExtras } from '@/lib/sources/howTheyVote';
 export interface MergeModuleDataOptions {
   /** When set, overrides default lobbying provenance (e.g. register snapshot) */
   lobbyingSliceMeta?: ModuleSliceMeta;
+  /** Clean search phrase — used to update news/lobbying topic labels when real data arrives */
+  searchQuery?: string;
 }
 
 /**
@@ -110,6 +112,8 @@ export function mergeModuleData(
       const history = r.sentimentHistory ?? [];
       out.news = {
         ...out.news,
+        // Update topic to the clean search phrase when real data arrives
+        ...(options?.searchQuery ? { topic: options.searchQuery } : {}),
         headlines: headlines.slice(0, 8),
         overallSentiment: sentiment,
         sentimentLabel: sentiment > 0.15 ? 'POSITIVE' : sentiment < -0.15 ? 'NEGATIVE' : 'MIXED',

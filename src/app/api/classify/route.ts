@@ -3,6 +3,7 @@ import type { ClassificationResult, ModuleType } from '@/lib/types';
 import { classifyQueryWithOpenAI } from '@/lib/llm/openaiClassify';
 import { resolveActiveLlmProvider } from '@/lib/llm/provider';
 import { normalizeSearchQuery } from '@/lib/normalizeQuery';
+import { processIdFromLegislationKeywords } from '@/lib/sources/parliament';
 
 // Haiku — cheapest model, ideal for fast JSON routing
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -14,8 +15,15 @@ const SYSTEM_PROMPT = `You are Aletheia's routing engine for EU political intell
   "timeframe": string,
   "query_type": "person"|"legislation"|"topic"|"event",
   "search_query": string,
+  "procedure_ref": "YYYY-NNNN" or null,
   "moduleContext": { "VOTING"?: string, "LOBBYING"?: string, "NEWS"?: string }
 }
+
+procedure_ref rules:
+- If you know the EU Parliament procedure reference for this legislation, include it as "YYYY-NNNN" (year-number).
+- Known references: AI Act → "2021-0106", DSA → "2020-0361", DMA → "2020-0374", GDPR → "2012-0011", Nature Restoration → "2022-0195", Green Deal/Climate Law → "2020-0036", Migration Pact/AMMR → "2020-0279", Asylum Procedures → "2016-0224", NIS2 Directive → "2020-0359", CBAM → "2021-0214", Corporate Sustainability → "2021-0104", Deforestation Regulation → "2021-0366", Packaging Regulation → "2022-0396", Critical Raw Materials → "2023-0079", Chips Act → "2022-0032", CRA → "2022-0272".
+- For general topics without a single procedure (e.g. "farm subsidies", "energy policy"), return null.
+- For person queries or news-only queries, return null.
 
 search_query rules:
 - Strip ALL question-word preamble: "what happened with", "tell me about", "who voted for", "explain", etc.
@@ -120,12 +128,16 @@ function fallbackClassify(query: string): ClassificationResult {
     isPolicyQuery ? 'legislation' :
     q.match(/when|event|summit|meeting/) ? 'event' : 'topic';
 
+  // Derive procedure_ref for well-known legislation from the keyword table
+  const procedure_ref = processIdFromLegislationKeywords([query, ...entities].join(' ')) ?? null;
+
   return {
     modules,
     entities,
     timeframe: q.match(/\b20\d\d\b/) ? (q.match(/\b20\d\d\b/)![0]) : 'recent',
     query_type,
     search_query: normalizeSearchQuery(query, entities),
+    procedure_ref,
     moduleContext: Object.keys(moduleContext).length ? moduleContext : undefined,
   };
 }

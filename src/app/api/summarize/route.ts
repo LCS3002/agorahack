@@ -25,11 +25,13 @@ type ChatMsg = { role: 'user' | 'assistant' | 'system'; content: any };
 function prepareModuleBase(
   classification: ClassificationResult,
   query: string,
+  searchQuery: string,
 ): { mockBase: ModuleData; lobbyingSliceMeta?: ModuleSliceMeta } {
   let mockBase = selectMockData(classification, query);
   let lobbyingSliceMeta: ModuleSliceMeta | undefined;
   if (classification.modules.includes('LOBBYING') && mockBase.lobbying) {
-    const reg = buildLobbyingFromRegisterSnapshot(query, classification.entities, mockBase.lobbying);
+    // Use searchQuery (LLM-cleaned) for the lobbying topic title, not the raw prompt
+    const reg = buildLobbyingFromRegisterSnapshot(searchQuery, classification.entities, mockBase.lobbying);
     mockBase = { ...mockBase, lobbying: reg.lobbying };
     lobbyingSliceMeta = reg.sliceMeta;
   }
@@ -94,18 +96,21 @@ async function fetchNewsData(query: string, entities: string[]): Promise<GdeltFe
   return fetchGdeltNewsData(query, entities);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function executeTool(name: string, input: Record<string, any>) {
-  switch (name) {
-    case 'fetch_voting_data':
-      return fetchParliamentVotingData(input.query as string, (input.entities as string[]) ?? []);
-    case 'fetch_news_data':
-      return fetchNewsData(input.query as string, (input.entities as string[]) ?? []);
-    case 'get_entity_background':
-      return fetchWikipediaEntitySummary(input.entity as string);
-    default:
-      return { error: `Unknown tool: ${name}` };
-  }
+/** Factory so each request's executeTool closes over classification.procedure_ref */
+function makeExecuteTool(procedureRef?: string | null) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return async function executeTool(name: string, input: Record<string, any>) {
+    switch (name) {
+      case 'fetch_voting_data':
+        return fetchParliamentVotingData(input.query as string, (input.entities as string[]) ?? [], procedureRef);
+      case 'fetch_news_data':
+        return fetchNewsData(input.query as string, (input.entities as string[]) ?? []);
+      case 'get_entity_background':
+        return fetchWikipediaEntitySummary(input.entity as string);
+      default:
+        return { error: `Unknown tool: ${name}` };
+    }
+  };
 }
 
 // ── Agent system prompt ────────────────────────────────────────────────────────
@@ -190,9 +195,11 @@ export async function POST(request: NextRequest) {
   const conversationHistory = body.conversationHistory ?? [];
   // Use the LLM-extracted clean search phrase when available; fall back to regex normalizer
   const searchQuery = classification.search_query || normalizeSearchQuery(query, classification.entities);
+  const procedureRef = classification.procedure_ref ?? null;
+  const executeTool = makeExecuteTool(procedureRef);
 
   const provider = resolveActiveLlmProvider();
-  const { mockBase, lobbyingSliceMeta } = prepareModuleBase(classification, query);
+  const { mockBase, lobbyingSliceMeta } = prepareModuleBase(classification, query, searchQuery);
 
   const encoder = new TextEncoder();
   const enc = (s: string) => encoder.encode(s);
@@ -209,7 +216,7 @@ export async function POST(request: NextRequest) {
 
           const [votingResult, newsResult] = await Promise.allSettled([
             classification.modules.includes('VOTING')
-              ? fetchParliamentVotingData(searchQuery, classification.entities)
+              ? fetchParliamentVotingData(searchQuery, classification.entities, procedureRef)
               : Promise.resolve(null),
             classification.modules.includes('NEWS')
               ? fetchNewsData(searchQuery, classification.entities)
@@ -231,7 +238,7 @@ export async function POST(request: NextRequest) {
           if (newsResult.status === 'fulfilled' && newsResult.value)
             toolResults.push({ name: 'fetch_news_data', result: newsResult.value as unknown as Record<string, unknown> });
 
-          let moduleData = mergeModuleData(classification, mockBase, toolResults, { lobbyingSliceMeta });
+          let moduleData = mergeModuleData(classification, mockBase, toolResults, { lobbyingSliceMeta, searchQuery });
           moduleData = withSummarySources(moduleData, toolResults);
           if (moduleData.meta?.voting?.source === 'mock') moduleData = { ...moduleData, voting: undefined };
           if (moduleData.meta?.news?.source === 'mock') moduleData = { ...moduleData, news: undefined };
@@ -253,7 +260,7 @@ export async function POST(request: NextRequest) {
 
         const [votingSettled, newsSettled, wikiSettled] = await Promise.allSettled([
           classification.modules.includes('VOTING')
-            ? fetchParliamentVotingData(searchQuery, classification.entities).then(r => {
+            ? fetchParliamentVotingData(searchQuery, classification.entities, procedureRef).then(r => {
                 emit(`EVT_T:done:fetch_voting_data:${r.queryMatched ? 1 : 0}`);
                 return r;
               })
@@ -429,7 +436,7 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
           ];
         }
 
-        let moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator, { lobbyingSliceMeta });
+        let moduleData = mergeModuleData(classification, mockBase, toolResultsAccumulator, { lobbyingSliceMeta, searchQuery });
         moduleData = withSummarySources(moduleData, toolResultsAccumulator);
 
         // Don't show fixture data when the query has no real match — clear unmatched modules
@@ -449,7 +456,7 @@ Write only the user-facing brief (four bold sections + SOURCES). Do not discuss 
         console.error('Summarize error:', err);
         try {
           const emptyTools: { name: string; result: Record<string, unknown> }[] = [];
-          let moduleData = mergeModuleData(classification, mockBase, emptyTools, { lobbyingSliceMeta });
+          let moduleData = mergeModuleData(classification, mockBase, emptyTools, { lobbyingSliceMeta, searchQuery });
           moduleData = withSummarySources(moduleData, emptyTools);
           // Clear mock data in error path too — don't emit stale fixture data as if it were real
           if (moduleData.meta?.voting?.source === 'mock') moduleData = { ...moduleData, voting: undefined };

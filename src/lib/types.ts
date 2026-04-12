@@ -14,6 +14,12 @@ export interface ClassificationResult {
    * e.g. "what happened with the 2024 EU Asylum Pact" → "EU Asylum Pact 2024"
    */
   search_query?: string;
+  /**
+   * EU Parliament procedure reference in YYYY-NNNN format, extracted by the classifier LLM
+   * from its training knowledge. Used to skip keyword-matching and directly fetch EP data.
+   * e.g. AI Act → "2021-0106", DSA → "2020-0361"
+   */
+  procedure_ref?: string | null;
   /** Context hints for modules NOT in the active modules array — shown in dashboard empty states */
   moduleContext?: Partial<Record<ModuleType, string>>;
 }

@@ -6,6 +6,29 @@ import { formatCountryAlpha2, formatCountryForUi } from '@/lib/countryDisplay';
 
 const EP_V2 = 'https://data.europarl.europa.eu/api/v2';
 
+/**
+ * Fix UTF-8 text that was stored/read as Latin-1 (mojibake).
+ * e.g. "Kateřina" stored as bytes [0xC5,0x99,...] read as Latin-1 = "Å™..."
+ * We detect this by checking for high-byte sequences that form valid UTF-8.
+ */
+function fixMojibake(str: string): string {
+  if (!str) return str;
+  // Only attempt if the string contains chars in 0x80-0xFF range (Latin-1 high bytes)
+  if (!/[\x80-\xFF]/.test(str)) return str;
+  try {
+    // Treat each char as a Latin-1 byte and re-decode as UTF-8
+    const bytes = Buffer.from(str.split('').map(c => c.charCodeAt(0) & 0xFF));
+    const decoded = bytes.toString('utf8');
+    // Use decoded only if it has fewer high-byte chars (successful UTF-8 decode reduces byte count)
+    const origHigh = (str.match(/[\x80-\xFF]/g) ?? []).length;
+    const decHigh = (decoded.match(/[\u0080-\uFFFF]/g) ?? []).length;
+    return decHigh < origHigh ? decoded : str;
+  } catch {
+    // Strip C1 control chars and private-use chars that show as boxes as a fallback
+    return str.replace(/[\u0080-\u009F\uE000-\uF8FF\uFFFD]/g, '');
+  }
+}
+
 const DEFAULT_HEADERS: HeadersInit = {
   Accept: 'application/ld+json',
   'User-Agent': 'agorahack/1.0',
@@ -108,7 +131,8 @@ export async function enrichKeyMepProfiles(
   for (const { pick, row } of mepRows) {
     const countryUi = formatCountryForUi(pick.country);
     const countryA2 = formatCountryAlpha2(pick.country);
-    const displayName = row?.label ? String(row.label) : pick.name;
+    const rawName = row?.label ? String(row.label) : pick.name;
+    const displayName = fixMojibake(rawName);
 
     keyMEPs.push({
       name: displayName,
