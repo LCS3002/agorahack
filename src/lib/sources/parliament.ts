@@ -77,15 +77,30 @@ function processIdFromDocumentPayload(doc: Record<string, unknown>): string | nu
   return null;
 }
 
-function sittingIdFromPlenaryVoteActivityId(activityId: string): string | null {
+function sittingIdFromPlenaryVoteActivityId(activityId: string, fallbackDate?: string): string | null {
+  // Sitting-level activity IDs: "MTG-PL-2024-04-10-VOT-ITM-..."
   const m = activityId.match(/^(MTG-PL-\d{4}-\d{2}-\d{2})/);
-  return m ? m[1] : null;
+  if (m) return m[1];
+  // Procedure-level adoption events: "2016-0280-DEC-DCPL-2019-03-26"
+  // Derive the sitting from the event's activity_date instead.
+  if (fallbackDate) {
+    const d = fallbackDate.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return `MTG-PL-${d}`;
+  }
+  return null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isPlenaryVoteEvent(ev: any): boolean {
   const t = String(ev?.had_activity_type ?? '');
-  return t.endsWith('/PLENARY_VOTE') || t === PLENARY_VOTE;
+  // Match sitting-level PLENARY_VOTE and procedure-level adoption events
+  // (PLENARY_ADOPT_POSITION = first/second reading; PLENARY_ADOPT_TEXT = final text)
+  return (
+    t.endsWith('/PLENARY_VOTE') ||
+    t === PLENARY_VOTE ||
+    t.endsWith('/PLENARY_ADOPT_POSITION') ||
+    t.endsWith('/PLENARY_ADOPT_TEXT')
+  );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -447,9 +462,10 @@ export async function fetchParliamentVotingData(
     const docIds = new Set(
       ((latestPv.based_on_a_realization_of as string[] | undefined) ?? []).filter(Boolean),
     );
-    const sittingId = sittingIdFromPlenaryVoteActivityId(activityId);
+    const eventDate = String(latestPv.activity_date ?? '');
+    const sittingId = sittingIdFromPlenaryVoteActivityId(activityId, eventDate);
     if (!sittingId) {
-      const d = String(latestPv.activity_date ?? '');
+      const d = eventDate;
       const enr = await loadEnrichedMeps(d || htvDate);
       return {
         matchedDocuments: [
