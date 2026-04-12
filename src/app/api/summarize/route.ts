@@ -87,11 +87,14 @@ function compactLobbyingSnapshotForPrompt(lobbying: NonNullable<ModuleData['lobb
   });
 }
 
-/** Valyu when key present, GDELT fallback */
+/** Valyu when key present, GDELT fallback on empty or error */
 async function fetchNewsData(query: string, entities: string[]): Promise<GdeltFetchResult> {
   if (process.env.VALYU_API_KEY?.trim()) {
-    try { return await fetchValyuNewsData(query, entities); }
-    catch (e) { console.warn('Valyu failed, falling back to GDELT:', e); }
+    try {
+      const r = await fetchValyuNewsData(query, entities);
+      if (r.queryMatched) return r;
+      console.warn('Valyu returned 0 results, falling back to GDELT');
+    } catch (e) { console.warn('Valyu failed, falling back to GDELT:', e); }
   }
   return fetchGdeltNewsData(query, entities);
 }
