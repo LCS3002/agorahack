@@ -78,7 +78,7 @@ export default function TeamPage() {
         </div>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           gap: '1px',
           background: 'rgba(26,26,24,0.08)',
         }}>
