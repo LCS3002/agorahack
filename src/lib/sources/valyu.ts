@@ -27,8 +27,9 @@ export async function fetchValyuNewsData(
   const apiKey = process.env.VALYU_API_KEY?.trim();
   if (!apiKey) throw new Error('VALYU_API_KEY not set');
 
-  // Build a clean, focused search query — strip question words / stopwords from the raw user query
-  const searchQuery = buildSearchPhrase(query, entities);
+  // query is already the LLM-cleaned search_query (5-8 words) — use it directly.
+  // buildSearchPhrase would prepend long entity names and break Valyu results.
+  const searchQuery = query.length <= 80 ? query : buildSearchPhrase(query, entities);
 
   const res = await fetch('https://api.valyu.ai/v1/search', {
     method: 'POST',

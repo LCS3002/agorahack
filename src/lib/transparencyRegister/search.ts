@@ -186,7 +186,7 @@ export function buildLobbyingFromRegisterSnapshot(
       const { score, rationale } = scoreRecord(record, terms);
       return { record, score, rationale };
     })
-    .filter(s => s.score >= 3)
+    .filter(s => s.score >= 5)
     .sort((a, b) => b.score - a.score);
 
   if (scored.length === 0) {

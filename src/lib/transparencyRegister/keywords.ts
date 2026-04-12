@@ -5,7 +5,7 @@ const SYNONYMS: Record<string, string[]> = {
   climate: ['climate', 'green deal', 'emission', 'carbon', 'nature restoration', 'biodiversity', 'nrl'],
   digital: ['digital', 'platform', 'dsa', 'dma', 'data', 'privacy', 'gdpr'],
   lobby: ['lobbying', 'lobbyist', 'influence', 'interest representative', 'transparency register'],
-  migration: ['asylum', 'asylum pact', 'migration pact', 'ceas', 'refugee', 'border management', 'frontex', 'migration management', 'return directive', 'eurodac', 'reception conditions', 'screening regulation'],
+  migration: ['asylum', 'migration pact', 'ceas', 'refugee', 'frontex', 'eurodac', 'schengen'],
 };
 
 // Words too generic to mean anything against the register — mostly question-word preamble
