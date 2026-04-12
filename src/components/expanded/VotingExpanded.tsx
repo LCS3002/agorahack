@@ -648,7 +648,15 @@ export function VotingExpanded({ data, onCollapse }: Props) {
   const [rollCall, setRollCall] = useState<KeyMEP[] | null>(null);
   const [rollCallFetch, setRollCallFetch] = useState<'idle' | 'loading' | 'done'>('idle');
 
+  /** Server merge already attached full chamber list — skip redundant client fetch. */
+  const rollCallLikelyComplete = data.keyMEPs.length > 100;
+
   useEffect(() => {
+    if (rollCallLikelyComplete) {
+      setRollCall(null);
+      setRollCallFetch('done');
+      return;
+    }
     if (data.howTheyVoteVoteId == null) {
       setRollCall(null);
       setRollCallFetch('idle');
@@ -672,7 +680,7 @@ export function VotingExpanded({ data, onCollapse }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [data.howTheyVoteVoteId]);
+  }, [data.howTheyVoteVoteId, data.keyMEPs.length, rollCallLikelyComplete]);
 
   const votingViewData = useMemo(
     (): VoteResult => ({
@@ -683,13 +691,15 @@ export function VotingExpanded({ data, onCollapse }: Props) {
   );
 
   const rollCallHint =
-    data.howTheyVoteVoteId == null
+    rollCallLikelyComplete
       ? null
-      : rollCallFetch === 'loading'
-        ? 'Loading full roll-call…'
-        : rollCallFetch === 'done' && !rollCall
-          ? 'Full per-MEP list unavailable — run npm run data:howtheyvote locally to generate data/howtheyvote-rollcall/.'
-          : null;
+      : data.howTheyVoteVoteId == null
+        ? null
+        : rollCallFetch === 'loading'
+          ? 'Loading full roll-call…'
+          : rollCallFetch === 'done' && !rollCall
+            ? 'Full per-MEP list unavailable — run npm run data:howtheyvote locally to generate data/howtheyvote-rollcall/.'
+            : null;
 
   function goToParty(party: string) {
     setDrillParty(party);

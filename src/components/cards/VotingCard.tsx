@@ -1,7 +1,10 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import type { VoteResult, PartyVote } from '@/lib/types';
+
+/** Compact card: show a short preview when the payload has the full chamber roll-call. */
+const MEP_PREVIEW_ROWS = 10;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 // EU Parliament political order, left → right
@@ -195,35 +198,15 @@ export function VotingCard({ data }: VotingCardProps) {
   const agnPct   = hasTally ? (data.votes.against / total) * 100 : 0;
   const absPct   = hasTally ? (data.votes.abstain / total) * 100 : 0;
 
-  const [rollCallCount, setRollCallCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (data.howTheyVoteVoteId == null) {
-      setRollCallCount(null);
-      return;
-    }
-    setRollCallCount(null);
-    let cancelled = false;
-    fetch(`/api/voting-rollcall?voteId=${data.howTheyVoteVoteId}&countOnly=1`)
-      .then(r => (r.ok ? r.json() : null))
-      .then(j => {
-        if (cancelled) return;
-        if (typeof j?.count === 'number') setRollCallCount(j.count);
-        else setRollCallCount(null);
-      })
-      .catch(() => {
-        if (!cancelled) setRollCallCount(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [data.howTheyVoteVoteId]);
+  const mepTotal = data.keyMEPs.length;
+  const mepPreviewRows =
+    mepTotal > MEP_PREVIEW_ROWS ? data.keyMEPs.slice(0, MEP_PREVIEW_ROWS) : data.keyMEPs;
 
   const mepSectionLabel =
-    rollCallCount != null && rollCallCount > data.keyMEPs.length
-      ? `Key MEPs · full roll-call ${rollCallCount.toLocaleString()} MEPs (expand panel for list)`
-      : rollCallCount != null && rollCallCount > 0
-        ? `Key MEPs · ${rollCallCount.toLocaleString()} MEPs on file`
+    mepTotal > MEP_PREVIEW_ROWS
+      ? `MEP roll-call preview (${MEP_PREVIEW_ROWS} of ${mepTotal.toLocaleString()}) · expand for full list`
+      : mepTotal > 12
+        ? `MEP roll-call (${mepTotal.toLocaleString()})`
         : 'Key MEPs';
 
   return (
@@ -291,7 +274,7 @@ export function VotingCard({ data }: VotingCardProps) {
       <div>
         <div className="label-xs" style={{ marginBottom: '10px', lineHeight: 1.45 }}>{mepSectionLabel}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-          {data.keyMEPs.map((mep) => (
+          {mepPreviewRows.map((mep) => (
             <div
               key={mep.memberId != null ? `m${mep.memberId}` : mep.name}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}

@@ -10,6 +10,7 @@ import type {
 } from '@/lib/types';
 import { formatCountryAlpha2 } from '@/lib/countryDisplay';
 import { lookupHowTheyVoteVoteExtras } from '@/lib/sources/howTheyVote';
+import { loadHowTheyVoteRollCallFromDisk } from '@/lib/sources/howTheyVoteRollCallServer';
 
 export interface MergeModuleDataOptions {
   /** When set, overrides default lobbying provenance (e.g. register snapshot) */
@@ -63,6 +64,20 @@ export function mergeModuleData(
           country: formatCountryAlpha2(k.country),
         })) ?? [];
 
+      const rollCallFromDisk =
+        vote?.howTheyVoteVoteId != null
+          ? loadHowTheyVoteRollCallFromDisk(vote.howTheyVoteVoteId)
+          : null;
+
+      const keyMEPsMerged =
+        rollCallFromDisk && rollCallFromDisk.length > 0
+          ? rollCallFromDisk
+          : r.keyMEPs && r.keyMEPs.length > 0
+            ? r.keyMEPs
+            : keyMEPsFromExtras.length > 0
+              ? keyMEPsFromExtras
+              : undefined;
+
       if (out.voting && (doc || vote)) {
         out.voting = {
           ...out.voting,
@@ -88,11 +103,7 @@ export function mergeModuleData(
           ...(vote?.howTheyVoteVoteId != null
             ? { howTheyVoteVoteId: vote.howTheyVoteVoteId }
             : {}),
-          ...(r.keyMEPs && r.keyMEPs.length > 0
-            ? { keyMEPs: r.keyMEPs }
-            : htvExtras?.keyMEPs?.length
-              ? { keyMEPs: keyMEPsFromExtras }
-              : {}),
+          ...(keyMEPsMerged != null && keyMEPsMerged.length > 0 ? { keyMEPs: keyMEPsMerged } : {}),
           ...(r.mepProfiles && r.mepProfiles.length > 0 ? { mepProfiles: r.mepProfiles } : {}),
         };
       }

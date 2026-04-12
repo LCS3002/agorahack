@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "data:transparency": "node scripts/convert-transparency-register.cjs",
-    "data:howtheyvote": "node scripts/build-howtheyvote-index.cjs"
+    "data:howtheyvote": "node scripts/build-howtheyvote-index.cjs",
+    "smoke:news-gdelt": "node scripts/smoke-news-gdelt.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.87.0",

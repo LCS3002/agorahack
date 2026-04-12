@@ -92,9 +92,11 @@ async function fetchNewsData(query: string, entities: string[]): Promise<GdeltFe
   if (process.env.VALYU_API_KEY?.trim()) {
     try {
       const r = await fetchValyuNewsData(query, entities);
-      if (r.queryMatched) return r;
-      console.warn('Valyu returned 0 results, falling back to GDELT');
-    } catch (e) { console.warn('Valyu failed, falling back to GDELT:', e); }
+      if (r.queryMatched && r.headlines.length > 0) return r;
+      console.warn('Valyu returned no usable headlines, falling back to GDELT');
+    } catch (e) {
+      console.warn('Valyu failed, falling back to GDELT:', e);
+    }
   }
   return fetchGdeltNewsData(query, entities);
 }

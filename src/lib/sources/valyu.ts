@@ -27,9 +27,14 @@ export async function fetchValyuNewsData(
   const apiKey = process.env.VALYU_API_KEY?.trim();
   if (!apiKey) throw new Error('VALYU_API_KEY not set');
 
-  // query is already the LLM-cleaned search_query (5-8 words) — use it directly.
-  // buildSearchPhrase would prepend long entity names and break Valyu results.
-  const searchQuery = query.length <= 80 ? query : buildSearchPhrase(query, entities);
+  // Classifier `search_query` is short; prepend 1–2 entities so topics like "Asylum Pact" stay specific.
+  const base = query.length <= 80 ? query.trim() : buildSearchPhrase(query, entities);
+  const entityPrefix = entities
+    .slice(0, 2)
+    .map(e => e.trim())
+    .filter(e => e.length > 2 && !base.toLowerCase().includes(e.toLowerCase()))
+    .join(' ');
+  const searchQuery = [entityPrefix, base].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().slice(0, 200);
 
   const res = await fetch('https://api.valyu.ai/v1/search', {
     method: 'POST',
@@ -55,11 +60,12 @@ export async function fetchValyuNewsData(
     success: boolean;
     results?: Array<{
       id: string;
-      title: string;
-      url: string;
+      title?: string;
+      url?: string;
+      link?: string;
       content?: string;
       description?: string;
-      source: string;
+      source?: string;
       relevance_score?: number;
       publication_date?: string;
     }>;
@@ -71,18 +77,28 @@ export async function fetchValyuNewsData(
   }
 
   const headlines: NewsHeadline[] = results
-    .filter(r => r.title && r.url)
-    .slice(0, 10)
     .map(r => {
-      const domain = getDomain(r.url);
+      const url = typeof r.url === 'string' && r.url ? r.url : typeof r.link === 'string' ? r.link : '';
+      const title =
+        typeof r.title === 'string' && r.title.trim()
+          ? r.title.trim()
+          : typeof r.description === 'string' && r.description.trim()
+            ? r.description.trim().slice(0, 140) + (r.description.length > 140 ? '…' : '')
+            : '';
+      return { url, title, r };
+    })
+    .filter(x => x.title && x.url)
+    .slice(0, 10)
+    .map(({ url, title, r }) => {
       const text = r.content ?? r.description ?? '';
+      const domain = getDomain(url);
       return {
-        source: domain,
-        title: r.title,
+        source: r.source && String(r.source).trim() ? String(r.source) : domain,
+        title,
         sentiment: estimateSentiment(text),
         date: r.publication_date ?? '',
         lean: getNewsLean(domain),
-        url: r.url,
+        url,
       };
     });
 
@@ -105,6 +121,11 @@ export async function fetchValyuNewsData(
       date,
       score: vals.reduce((a, b) => a + b, 0) / vals.length,
     }));
+
+  // Only "match" when we have usable cards — otherwise summarize must fall back to GDELT.
+  if (headlines.length === 0) {
+    return { headlines: [], sentiment: 0, sentimentHistory: [], framing: { left: '', centre: '', right: '' }, queryMatched: false };
+  }
 
   return {
     headlines,
