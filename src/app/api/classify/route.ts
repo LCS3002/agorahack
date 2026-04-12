@@ -21,7 +21,7 @@ const SYSTEM_PROMPT = `You are Aletheia's routing engine for EU political intell
 
 procedure_ref rules:
 - If you know the EU Parliament procedure reference for this legislation, include it as "YYYY-NNNN" (year-number).
-- Known references: AI Act → "2021-0106", DSA → "2020-0361", DMA → "2020-0374", GDPR → "2012-0011", Nature Restoration → "2022-0195", Green Deal/Climate Law → "2020-0036", Migration Pact/AMMR → "2020-0279", Asylum Procedures → "2016-0224", NIS2 Directive → "2020-0359", CBAM → "2021-0214", Corporate Sustainability → "2021-0104", Deforestation Regulation → "2021-0366", Packaging Regulation → "2022-0396", Critical Raw Materials → "2023-0079", Chips Act → "2022-0032", CRA → "2022-0272".
+- Known references: AI Act → "2021-0106", DSA → "2020-0361", DMA → "2020-0374", GDPR → "2012-0011", Nature Restoration → "2022-0195", Green Deal/Climate Law → "2020-0036", Migration Pact/AMMR → "2020-0279", Asylum Procedures → "2016-0224", NIS2 Directive → "2020-0359", CBAM → "2021-0214", Corporate Sustainability → "2021-0104", Deforestation Regulation → "2021-0366", Packaging Regulation → "2022-0396", Critical Raw Materials → "2023-0079", Chips Act → "2022-0032", CRA → "2022-0272", Copyright Directive/Article 13/Article 17/upload filter → "2016-0280", ePrivacy Regulation → "2017-0003", Whistleblower Protection → "2018-0106", Platform Work Directive → "2021-0414".
 - For general topics without a single procedure (e.g. "farm subsidies", "energy policy"), return null.
 - For person queries or news-only queries, return null.
 
