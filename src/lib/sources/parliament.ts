@@ -197,19 +197,9 @@ export function processIdFromLegislationKeywords(text: string): string | null {
     q.includes('fit for 55') ||
     q.includes('2020/0036');
 
-  // Copyright Directive — "Article 13" (now Article 17) upload filter, voted March 2019
-  const hasCopyright =
-    q.includes('copyright') ||
-    q.includes('upload filter') ||
-    q.includes('article 13') ||
-    q.includes('article 17') && q.includes('copyright') ||
-    q.includes('digital single market') && q.includes('copyright') ||
-    q.includes('2016/0280') || q.includes('2016-0280');
-
   if (hasDsa) return '2020-0361';
   if (hasDma) return '2020-0374';
   if (hasAi) return '2021-0106';
-  if (hasCopyright) return '2016-0280';
   // Asylum and Migration Management Regulation — flagship regulation of the 2024 Pact
   if (hasAsylumPact) return '2020-0279';
   if (hasAsylumProcedures) return '2016-0224';
