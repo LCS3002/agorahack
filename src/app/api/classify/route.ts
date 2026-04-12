@@ -63,7 +63,7 @@ function fallbackClassify(query: string): ClassificationResult {
     /law|act|directive|regulation|legislation|policy|reform|vote|voted|voting|passed|rejected|parliament|plenary|committee/
   );
   const isPersonQuery = !!q.match(
-    /who|mep|minister|commissioner|politician|leyen|von der|president|rapporteur|benifei|tudorache|hahn|voss|breyer/
+    /who|mep|minister|commissioner|politician|president|rapporteur|von der|\b(mr|mrs|ms|dr)\b/
   );
   const isLobbyQuery = !!q.match(
     /lobby|lobbyist|money|spend|donor|influence|company|corporate|industry|fund|interest|conflict|revolving/
@@ -78,19 +78,14 @@ function fallbackClassify(query: string): ClassificationResult {
     /ai act|artificial intelligence|nature restoration|csrd|gdpr|dsa|dma|taxonomy|green deal|farm subsidies|cap\b|pfizer|pharma|vaccine|asylum pact|pact on migration|asylum.*pact|migration.*pact/
   );
 
-  // Derive entities first so we can use them in moduleContext hints
+  // Derive entities — only well-known abbreviations/acronyms that need expansion;
+  // named persons are left to the LLM path
   const entities: string[] = [];
-  if (q.includes('von der leyen'))      entities.push('Ursula von der Leyen');
-  if (q.includes('pfizer'))             entities.push('Pfizer');
   if (q.includes('nature restoration')) entities.push('Nature Restoration Law');
   if (q.includes('digital services act') || /\bdsa\b/.test(q)) entities.push('Digital Services Act');
   if (q.includes('digital markets act') || /\bdma\b/.test(q)) entities.push('Digital Markets Act');
-  if (q.includes('ai act'))             entities.push('EU AI Act');
-  if (q.includes('farm'))               entities.push('CAP Farm Subsidies');
-  if (q.includes('pharma'))             entities.push('Pharmaceutical Industry');
-  if (q.includes('csrd'))               entities.push('CSRD');
-  if (q.includes('benifei'))            entities.push('Brando Benifei');
-  if (q.includes('voss'))               entities.push('Axel Voss');
+  if (q.includes('ai act') || /\bai\b/.test(q) && q.includes('act')) entities.push('EU AI Act');
+  if (q.includes('csrd'))              entities.push('CSRD');
   if (q.includes('asylum pact') || q.includes('pact on migration') ||
       (q.includes('asylum') && q.includes('pact')))
     entities.push('EU Pact on Migration and Asylum');

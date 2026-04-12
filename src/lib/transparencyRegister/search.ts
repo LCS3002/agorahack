@@ -7,9 +7,19 @@ import { normalizeSearchQuery } from '@/lib/normalizeQuery';
 
 const REGISTRY_INFO_URL = 'https://ec.europa.eu/info/relations-with-citizens/transparency-register_en';
 
+// Realistic ceiling for declared EU lobbying costs.
+// Even the heaviest corporate lobbyers (Google, Meta, Microsoft) declare ~€5–7M/year.
+// Values above this are organizational budgets / research grants misreported as lobbying spend.
+const MAX_LOBBY_SPEND_EUR = 10_000_000;
+
+function cappedMidEur(r: TransparencyRegisterRecord): number {
+  const min = Math.min(r.value_min_eur, MAX_LOBBY_SPEND_EUR);
+  const max = Math.min(r.value_max_eur, MAX_LOBBY_SPEND_EUR);
+  return (min + max) / 2;
+}
+
 function isHighSpendMid(r: TransparencyRegisterRecord): boolean {
-  const mid = (r.value_min_eur + r.value_max_eur) / 2;
-  return mid >= 4_000_000;
+  return cappedMidEur(r) >= 4_000_000;
 }
 
 function isCommercialCategory(cat: string): boolean {
@@ -111,7 +121,7 @@ function mapToLobbyingResult(
   const top = scored.slice(0, 5);
   const organizations = top
     .map((s) => {
-      const midEur = (s.record.value_min_eur + s.record.value_max_eur) / 2;
+      const midEur = cappedMidEur(s.record);
       const spendM = midEur / 1_000_000;
       const meetings = Math.max(2, Math.round(spendM * 5));
       const pi = s.record.persons_involved;

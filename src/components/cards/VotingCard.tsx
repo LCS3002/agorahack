@@ -190,9 +190,10 @@ interface VotingCardProps {
 
 export function VotingCard({ data }: VotingCardProps) {
   const total    = data.votes.for + data.votes.against + data.votes.abstain;
-  const forPct   = (data.votes.for     / total) * 100;
-  const agnPct   = (data.votes.against / total) * 100;
-  const absPct   = (data.votes.abstain / total) * 100;
+  const hasTally = total > 0;
+  const forPct   = hasTally ? (data.votes.for     / total) * 100 : 0;
+  const agnPct   = hasTally ? (data.votes.against / total) * 100 : 0;
+  const absPct   = hasTally ? (data.votes.abstain / total) * 100 : 0;
 
   return (
     <div className="aether-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
@@ -224,27 +225,33 @@ export function VotingCard({ data }: VotingCardProps) {
       </div>
 
       {/* ── Vote totals + stacked bar ───────────────────────────────────── */}
-      <div>
-        <div style={{ display: 'flex', height: '6px', width: '100%', gap: '1px', marginBottom: '10px' }}>
-          <div style={{ width: `${forPct}%`,  background: 'rgba(26,26,24,0.7)',  transition: 'width 0.6s ease' }} />
-          <div style={{ width: `${agnPct}%`,  background: '#C9A89A',             transition: 'width 0.6s ease' }} />
-          <div style={{ width: `${absPct}%`,  background: 'rgba(26,26,24,0.12)', transition: 'width 0.6s ease' }} />
-        </div>
-        <div style={{ display: 'flex', gap: '20px' }}>
-          {[
-            { label: 'FOR',     value: data.votes.for,     color: 'rgba(26,26,24,0.8)' },
-            { label: 'AGAINST', value: data.votes.against, color: '#C9A89A' },
-            { label: 'ABSTAIN', value: data.votes.abstain, color: 'rgba(26,26,24,0.3)' },
-          ].map(item => (
-            <div key={item.label}>
-              <div style={{ fontSize: '20px', fontWeight: 200, color: item.color, lineHeight: 1 }}>
-                {item.value}
+      {hasTally ? (
+        <div>
+          <div style={{ display: 'flex', height: '6px', width: '100%', gap: '1px', marginBottom: '10px' }}>
+            <div style={{ width: `${forPct}%`,  background: 'rgba(26,26,24,0.7)',  transition: 'width 0.6s ease' }} />
+            <div style={{ width: `${agnPct}%`,  background: '#C9A89A',             transition: 'width 0.6s ease' }} />
+            <div style={{ width: `${absPct}%`,  background: 'rgba(26,26,24,0.12)', transition: 'width 0.6s ease' }} />
+          </div>
+          <div style={{ display: 'flex', gap: '20px' }}>
+            {[
+              { label: 'FOR',     value: data.votes.for,     color: 'rgba(26,26,24,0.8)' },
+              { label: 'AGAINST', value: data.votes.against, color: '#C9A89A' },
+              { label: 'ABSTAIN', value: data.votes.abstain, color: 'rgba(26,26,24,0.3)' },
+            ].map(item => (
+              <div key={item.label}>
+                <div style={{ fontSize: '20px', fontWeight: 200, color: item.color, lineHeight: 1 }}>
+                  {item.value}
+                </div>
+                <div className="label-xs" style={{ marginTop: '3px' }}>{item.label}</div>
               </div>
-              <div className="label-xs" style={{ marginTop: '3px' }}>{item.label}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ fontSize: '10px', color: 'rgba(26,26,24,0.38)', fontStyle: 'italic', letterSpacing: '0.03em' }}>
+          Roll-call tallies not available for this vote — see summary for reported result.
+        </div>
+      )}
 
       {/* ── Hemicycle ─────────────────────────────────────────────────── */}
       <Hemicycle partyBreakdown={data.partyBreakdown} />
